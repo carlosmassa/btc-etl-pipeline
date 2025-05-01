@@ -22,6 +22,37 @@ def transform_data():
         df.to_csv("transformed_btc_usd.csv")
         logging.info(f"Cleaned data saved with {len(df)} records")
 
+
+        # Find Genesis and create an index from the genesis date
+        genesis = df.Date[0]
+        print(df)
+        print("genesis Date:", genesis)
+        #Genesis block is 3rd Jan, 2009, above value is actually 2nd Jan
+        df = df[df.Date >= "2010-09-16"]#useful data from exchanges from 2010 onwards
+        df=df.reset_index(drop=True)
+        df=df.drop("index", axis=1)
+        #delta = (df.Date[0] - genesis).days - 1
+        delta = (df.Date[0] - genesis).days
+        #728 days between Jan 1, 2011 and Jan 3, 2009
+        print(df.Date[0])
+        print(df.Date[0], genesis)
+        print((df.Date[0] - genesis).days)
+        df["ind"] = [x+delta for x in range(len(df))]
+        print(df) #index represents number of days since genesis block
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
         # Create Plotly chart
         fig = go.Figure()
         fig.add_trace(
@@ -37,34 +68,26 @@ def transform_data():
         # Anotations
         annotations = []
 
-        # "Chart by:" — plain text
+        # Anotations
+        annotations = []
+        annotations.append(dict(x=1, y=-0.1,
+            text="Chart by: @CarlesMassa",
+            showarrow=False, xref='paper', yref='paper',
+            xanchor='right', yanchor='auto', xshift=0, yshift=0))
+
         annotations.append(dict(
-            x=0.99,           # Position annotation at the far right
-            y=-0.12,          # Slightly lower than the legend (adjust as needed)
-            text='Chart by:',
-            showarrow=False,
-            xref='paper',
+            x=1,              # Position annotation at the far right
+            y=-0.15,          # Slightly lower than the legend (adjust as needed)
+            text="Chart by: @CarlesMassa",  # Annotation text
+            showarrow=False, 
+            xref='paper', 
             yref='paper',     # Use paper coordinates to position annotation
             xanchor='right',  # Align annotation to the right of the paper
             yanchor='auto',   # Auto-anchor to adjust automatically
-            xshift=0,
-            yshift=0,          # Fine-tune vertical positioning
-            font=dict(color='white')
-        ))
-        
-        # "@CarlesMassa" — clickable link only
-        annotations.append(dict(
-            x=1,              # Position annotation at the far right
-            y=-0.12,          # Slightly lower than the legend (adjust as needed)
-            text='<a href="https://x.com/CarlesMassa" target="_blank" style="color:white;text-decoration:none;">@CarlesMassa</a>',
-            showarrow=False,
-            xref='paper',
-            yref='paper',
-            xanchor='left',
-            yanchor='auto',
-            xshift=2,
+            xshift=0, 
             yshift=0          # Fine-tune vertical positioning
         ))
+        
 
         
         # Customize layout
