@@ -14,13 +14,11 @@ def transform_data():
         # Clean data
         df['Date'] = pd.to_datetime(df['time'])
         df['PriceUSD'] = df['PriceUSD'].astype(float)
-        df = df.dropna(subset=['PriceUSD'])  # Remove missing prices
+        #df = df.dropna(subset=['PriceUSD'])  # Remove missing prices
         df = df.sort_values('Date')  # Ensure chronological order
         df = df.set_index('Date')  # Set date as index
 
-        # Save cleaned data
-        df.to_csv("transformed_btc_usd.csv")
-        logging.info(f"Cleaned data saved with {len(df)} records")
+
 
 
         # Find Genesis and create an index from the genesis date
@@ -41,7 +39,9 @@ def transform_data():
         print(df) #index represents number of days since genesis block
 
 
-
+        # Save cleaned data
+        df.to_csv("transformed_btc_usd.csv")
+        logging.info(f"Cleaned data saved with {len(df)} records")
 
 
 
