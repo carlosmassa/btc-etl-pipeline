@@ -50,7 +50,7 @@ def post_to_x():
 
         # Create a tweet
         # Define the tweet text
-        tweet = 'this is an automated test tweet using #Python $BTC'
+        tweet = 'This is an automated test tweet using #Python $BTC'
         print(tweet)
 
         # Generate text tweet
