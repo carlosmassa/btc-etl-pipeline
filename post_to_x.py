@@ -11,15 +11,50 @@ def post_to_x():
         api_secret = os.getenv('X_API_SECRET')
         access_token = os.getenv('X_ACCESS_TOKEN')
         access_token_secret = os.getenv('X_ACCESS_TOKEN_SECRET')
+        BEARER_TOKEN = os.getenv('X_BEARER_TOKEN')
+
+        client = tweepy.Client(bearer_token=BEARER_TOKEN)
 
         # Authenticate with X API (v1.1)
-        auth = tweepy.OAuthHandler(api_key, api_secret)
-        auth.set_access_token(access_token, access_token_secret)
-        api = tweepy.API(auth, wait_on_rate_limit=True)
+        def create_api():
+            auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+            auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+            #auth = tweepy.OAuthHandler("SwY5SACoDuOwnJ36LpmBKXZQK", "ka5oIz4uuW5uESfnJU0jA5CnVLcpwxEOtH14nGUgxPWy90peYM")
+            #auth.set_access_token("94077742-CXA2QJ1niofEF91NUHtFbyhdeF3jTSP1REi3Zzek8", "kTifIRru2sv8ITYErTHa9FAj0IV7IABlv5uP8v7jTkuYr")
+            # Create API object
+            api = tweepy.API(auth, wait_on_rate_limit=True)
+            try:
+                api.verify_credentials()
+            except Exception as e:
+                logger.error("Error creating API", exc_info=True)
+                print("Error creating API")
+                raise e
+            logger.info("API created")
+            print("API created")
+            return api
 
+        api = create_api()
+        
         # Verify credentials
-        api.verify_credentials()
-        logging.info("X API authentication successful")
+        try:
+            api.verify_credentials()
+            logging.info("X API authentication successful!")
+        except Exception as e:
+            logging.info("X API authentication failed!")
+
+        #get my user id and follower count
+        user = api.get_user(screen_name='carlesmassa')
+        print(user.id)
+        print(user.screen_name)  # User Name
+        print(user.followers_count) #User Follower Count
+
+        # Create a tweet
+        # Define the tweet text
+        tweet = 'this is an automated test tweet using #Python $BTC'
+        print(tweet)
+
+        # Generate text tweet
+        api.update_status(tweet)
 
         # Post JPG with caption using v1.1 endpoint
         jpg_path = "charts/btc_usd_chart.jpg"
