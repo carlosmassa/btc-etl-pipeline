@@ -34,6 +34,7 @@ def transform_data():
         )
 
         # Anotations
+        annotations = []
         annotations.append(dict(x=1, y=-0.1,
             text="Chart by: @CarlesMassa",
             showarrow=False, xref='paper', yref='paper',
