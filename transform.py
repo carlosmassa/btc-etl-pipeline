@@ -180,7 +180,7 @@ def transform_data():
         fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_5%'], fill='tonexty', mode='lines', line=dict(color='#00FF7F', width=0), name='5% Quantile', showlegend=False))
         fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_90%'], fill=None, mode='lines', line=dict(color='#00BFFF', width=1), name='90% Quantile', showlegend=False))
         #fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_98%'], fill='tonexty', mode='lines', line=dict(color='#87CEFA', width=0), name='98% Quantile', showlegend=False))
-        fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_98%'], fill=None, mode='lines', line=dict(color='#FF6347', width=1), name='98% Quantile', showlegend=False))
+        fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_98%'], fill='tonexty', mode='lines', line=dict(color='#FF6347', width=1), name='98% Quantile', showlegend=False))
         fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_99.9%'], fill='tonexty', mode='lines', line=dict(color='#FF4500', width=0), name='99.9% Quantile', showlegend=False))
         
         
