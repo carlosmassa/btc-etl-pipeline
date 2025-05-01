@@ -64,4 +64,6 @@ jobs:
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
-        run: python post_to_x.py || true
+        run: |
+          ls -la charts/  # Debug: Confirm JPG exists before posting
+          python post_to_x.py || true
