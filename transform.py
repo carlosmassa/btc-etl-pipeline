@@ -36,15 +36,11 @@ def transform_data():
 
         # Anotations
         annotations = []
-        annotations.append(dict(x=1, y=-0.1,
-            text="Chart by: @CarlesMassa",
-            showarrow=False, xref='paper', yref='paper',
-            xanchor='right', yanchor='auto', xshift=0, yshift=0))
 
         annotations.append(dict(
             x=1,              # Position annotation at the far right
             y=-0.15,          # Slightly lower than the legend (adjust as needed)
-            text="Chart by: @CarlesMassa",  # Annotation text
+            text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>',  # Annotation text
             showarrow=False, 
             xref='paper', 
             yref='paper',     # Use paper coordinates to position annotation
