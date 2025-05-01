@@ -17,8 +17,6 @@ def post_to_x():
         def create_api():
             auth = tweepy.OAuthHandler(api_key, api_secret)
             auth.set_access_token(access_token, access_token_secret)
-            #auth = tweepy.OAuthHandler("SwY5SACoDuOwnJ36LpmBKXZQK", "ka5oIz4uuW5uESfnJU0jA5CnVLcpwxEOtH14nGUgxPWy90peYM")
-            #auth.set_access_token("94077742-CXA2QJ1niofEF91NUHtFbyhdeF3jTSP1REi3Zzek8", "kTifIRru2sv8ITYErTHa9FAj0IV7IABlv5uP8v7jTkuYr")
             # Create API object
             api = tweepy.API(auth, wait_on_rate_limit=True)
             try:
@@ -40,21 +38,25 @@ def post_to_x():
         except Exception as e:
             logging.info("X API authentication failed!")
 
-        #get my user id and follower count
-        #user = api.get_user(screen_name='carlesmassa')
-        #print(user.id)
-        #print(user.screen_name)  # User Name
-        #print(user.followers_count) #User Follower Count
+        jpg_path = "charts/btc_usd_chart.jpg"
+        if not os.path.exists(jpg_path):
+            raise FileNotFoundError(f"JPG file not found: {jpg_path}")
+        logging.info(f"JPG file found: {jpg_path}")
 
-        client = tweepy.Client(consumer_key=api_key, consumer_secret=api_secret, access_token=access_token, access_token_secret=access_token_secret)
+        media = api.media_upload(filename=jpg_path)
+        media_id = media.media_id
+        logging.info(f"Media uploaded successfully, media ID: {media_id}")
+
+        client = tweepy.Client(
+            consumer_key=api_key,
+            consumer_secret=api_secret,
+            access_token=access_token,
+            access_token_secret=access_token_secret)
+
         # Create a tweet
-        # Define the tweet text
-        tweet = 'This is an automated test tweet using #Python $BTC'
-        print(tweet)
-
-        # Generate text tweet
-        client.create_tweet(text="This is an automated test tweet using Python")
-
+        caption = "Daily BTC/USD Price Chart #Bitcoin"
+        client.create_tweet(text=caption, media_ids=[media_id])
+        logging.info("Posted JPG chart to X successfully using v2 endpoint")
     except Exception as e:
         logging.error(f"Failed to post to X: {str(e)}")
         raise
