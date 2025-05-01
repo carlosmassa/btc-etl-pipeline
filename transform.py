@@ -358,13 +358,13 @@ def transform_data():
         
         annotations.append(dict(
             x=1,
-            y=-0.13,
+            y=0,
             text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>',
             showarrow=False,
             xref='paper',
             yref='paper',
             xanchor='right',
-            yanchor='auto',
+            yanchor='bottom',
             xshift=0,
             yshift=0
         ))
