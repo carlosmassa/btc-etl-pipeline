@@ -35,8 +35,6 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          # Clean untracked files to avoid checkout conflicts
-          git clean -fd
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             git fetch origin gh-pages
             git checkout gh-pages
@@ -44,8 +42,9 @@ jobs:
             git checkout --orphan gh-pages
             git rm -rf .
           fi
-          # Move chart to charts/ (already done by load.py, but ensure directory exists)
+          # Ensure chart is in place
           mkdir -p charts
+          mv charts/btc_usd_chart.html charts/ || true
           git add charts/btc_usd_chart.html
           git commit -m "Update BTC/USD chart for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
