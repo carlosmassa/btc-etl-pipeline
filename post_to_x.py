@@ -13,27 +13,47 @@ def post_to_x():
         access_token_secret = os.getenv('X_ACCESS_TOKEN_SECRET')
         BEARER_TOKEN = os.getenv('X_BEARER_TOKEN')
 
-        # Using the tweepy.Client which supports API v2
-        client = tweepy.Client(bearer_token=BEARER_TOKEN, 
-                               consumer_key=api_key,
-                               consumer_secret=api_secret,
-                               access_token=access_token,
-                               access_token_secret=access_token_secret)
+        # Authenticate with X API (v1.1)
+        def create_api():
+            auth = tweepy.OAuthHandler(api_key, api_secret)
+            auth.set_access_token(access_token, access_token_secret)
+            #auth = tweepy.OAuthHandler("SwY5SACoDuOwnJ36LpmBKXZQK", "ka5oIz4uuW5uESfnJU0jA5CnVLcpwxEOtH14nGUgxPWy90peYM")
+            #auth.set_access_token("94077742-CXA2QJ1niofEF91NUHtFbyhdeF3jTSP1REi3Zzek8", "kTifIRru2sv8ITYErTHa9FAj0IV7IABlv5uP8v7jTkuYr")
+            # Create API object
+            api = tweepy.API(auth, wait_on_rate_limit=True)
+            try:
+                api.verify_credentials()
+            except Exception as e:
+                logging.info("Error creating API")
+                print("Error creating API")
+                raise e
+            logging.info("API created")
+            print("API created")
+            return api
 
+        api = create_api()
+        
         # Verify credentials
         try:
-            client.get_me()  # This is a simple API v2 call to verify credentials
+            api.verify_credentials()
             logging.info("X API authentication successful!")
         except Exception as e:
-            logging.error("X API authentication failed!")
-            raise e
+            logging.info("X API authentication failed!")
 
+        #get my user id and follower count
+        #user = api.get_user(screen_name='carlesmassa')
+        #print(user.id)
+        #print(user.screen_name)  # User Name
+        #print(user.followers_count) #User Follower Count
+
+        client = tweepy.Client(bearer_token=BEARER_TOKEN)
+        # Create a tweet
         # Define the tweet text
         tweet = 'This is an automated test tweet using #Python $BTC'
-        print(f"Tweeting: {tweet}")
+        print(tweet)
 
-        # Post the tweet using API v2
-        client.create_tweet(text=tweet)
+        # Generate text tweet
+        client.create_tweet(text="This is an automated test tweet using Python")
 
     except Exception as e:
         logging.error(f"Failed to post to X: {str(e)}")
