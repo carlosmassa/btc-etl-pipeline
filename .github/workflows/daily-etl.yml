@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 0  # Full history to ensure latest commit
+          fetch-depth: 0 # Full history to ensure latest commit
       - name: Debug: List repository files
         run: |
           ls -la
@@ -49,8 +49,7 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          # Debug: List files
-          ls -la charts/
+          ls -la charts/ # Debug: List files
           mkdir -p temp
           mv charts/btc_usd_chart.html temp/ || true
           mv charts/btc_usd_chart.jpg temp/ || true
@@ -64,8 +63,7 @@ jobs:
           mkdir -p charts
           mv temp/btc_usd_chart.html charts/ || true
           mv temp/btc_usd_chart.jpg charts/ || true
-          # Debug: List files after move
-          ls -la charts/
+          ls -la charts/ # Debug: List files after move
           git add charts/btc_usd_chart.html charts/btc_usd_chart.jpg
           git commit -m "Update BTC/USD chart and JPG for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
@@ -77,7 +75,7 @@ jobs:
           X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
         run: |
-          ls -la charts/  # Debug: Confirm JPG exists
-          ls -la .  # Debug: Confirm post_to_x.py exists
-          python post_to_x.py
+          ls -la charts/ # Debug: Confirm JPG exists
+          ls -la . # Debug: Confirm post_to_x.py exists
+          python post_to_x.py || true
           
