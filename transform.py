@@ -25,10 +25,16 @@ def transform_data():
         btc_data['Date'] = btc_data.Date.apply(lambda x: x.date()) # where dates is your datetime column
         btc_data['Date'] = pd.to_datetime(btc_data['Date'], format='%Y-%m-%d')
         btc_data['Value'] = btc_data['PriceUSD']
-        btc_dat = btc_data.drop(['PriceUSD'], axis=1)
+        btc_data = btc_data.drop(['PriceUSD'], axis=1)
 
 
-        # Find Genesis and create an index from the genesis date
+        btc_data.reset_index()
+        df = btc_data.reset_index(drop=True)
+        df
+        #df = pd.read_csv("C:\\Users\\Aman\\Desktop\\Aman\\crypto_finance\\BTC_USD.csv")[["Date", "Value"]]
+        df = btc_data.reset_index()
+        df.Date = pd.to_datetime(df.Date)
+        df.sort_values(by="Date", inplace = True)
         genesis = df.Date[0]
         print(df)
         print("genesis Date:", genesis)
