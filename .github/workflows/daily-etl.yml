@@ -22,8 +22,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Print current working directory
-        run: pwd
       - name: Extract data
         run: python extract.py
       - name: Transform data
@@ -70,7 +68,5 @@ jobs:
           git add charts/btc_usd_chart.html charts/btc_usd_chart.jpg
           git commit -m "Update BTC/USD chart and JPG for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
-      - name: List all files recursively (debug)
-        run: find . -name "post_to_x.py"
 
 
