@@ -12,24 +12,23 @@ def post_to_x():
         access_token = os.getenv('X_ACCESS_TOKEN')
         access_token_secret = os.getenv('X_ACCESS_TOKEN_SECRET')
 
-        # Authenticate with X API
+        # Authenticate with X API (v1.1)
         auth = tweepy.OAuthHandler(api_key, api_secret)
         auth.set_access_token(access_token, access_token_secret)
-        api = tweepy.API(auth)
+        api = tweepy.API(auth, wait_on_rate_limit=True)
 
         # Verify credentials
         api.verify_credentials()
         logging.info("X API authentication successful")
 
-        # Post JPG with caption
+        # Post JPG with caption using v1.1 endpoint
         jpg_path = "charts/btc_usd_chart.jpg"
         if not os.path.exists(jpg_path):
             raise FileNotFoundError(f"JPG file not found: {jpg_path}")
 
-        caption = "Daily BTC/USD Price Chart #Bitcoin"
-        media = api.media_upload(jpg_path)
-        api.update_status(status=caption, media_ids=[media.media_id])
-        logging.info("Posted JPG chart to X successfully")
+        caption = "Daily BTC/USD Price Chart (2009–2025) #Bitcoin #Crypto"
+        api.update_with_media(jpg_path, status=caption)
+        logging.info("Posted JPG chart to X successfully using v1.1 endpoint")
     except Exception as e:
         logging.error(f"Failed to post to X: {str(e)}")
         raise
