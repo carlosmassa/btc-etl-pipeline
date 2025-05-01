@@ -33,21 +33,44 @@ def transform_data():
             )
         )
 
+        # Anotations
+        annotations.append(dict(x=1, y=-0.1,
+            text="Chart by: @CarlesMassa",
+            showarrow=False, xref='paper', yref='paper',
+            xanchor='right', yanchor='auto', xshift=0, yshift=0))
+        
         # Customize layout
         fig.update_layout(
             title='BTC/USD Price (Daily)',
             xaxis_title='Date',
             yaxis_title='Price (USD)',
+            yaxis_type='log',
+            hovermode='closest',
             template='plotly_dark',  # Black background
             plot_bgcolor='black',
             paper_bgcolor='black',
-            font=dict(color='white'),
-            xaxis=dict(gridcolor='gray'),
-            yaxis=dict(gridcolor='gray')
+            showlegend=True,
+            legend_orientation="h",
+            annotations=annotations,
         )
 
+        fig.update_yaxes(showgrid=False)
+
+        # Define configuration for mode bar buttons
+        config = {
+            'modeBarButtonsToAdd': [
+                'drawline',
+                'drawopenpath',
+                'drawcircle',
+                'drawrect',
+                'eraseshape',
+                'v1hovermode',
+                'togglespikelines'
+            ]
+        }
+
         # Save chart as HTML
-        fig.write_html("btc_usd_chart.html", auto_open=False)
+        fig.write_html("btc_usd_chart.html", auto_open=False, config=config)
         logging.info("Plotly chart saved as btc_usd_chart.html")
     except Exception as e:
         logging.error(f"Transformation failed: {str(e)}")
