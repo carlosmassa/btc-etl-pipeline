@@ -1,0 +1,3 @@
+coinmetrics-api-client==2024.12.23.0
+pandas==2.2.2
+plotly==5.22.0
