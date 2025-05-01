@@ -54,7 +54,7 @@ def post_to_x():
             access_token_secret=access_token_secret)
 
         # Create a tweet
-        caption = "Daily BTC/USD Price Chart #Bitcoin"
+        caption = "Daily BTC/USD Power Law Probability Channel Chart #Bitcoin"
         client.create_tweet(text=caption, media_ids=[media_id])
         logging.info("Posted JPG chart to X successfully using v2 endpoint")
     except Exception as e:
