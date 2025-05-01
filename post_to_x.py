@@ -46,7 +46,7 @@ def post_to_x():
         #print(user.screen_name)  # User Name
         #print(user.followers_count) #User Follower Count
 
-        client = tweepy.Client(consmer_key=api_key, consumer_secret=api_secret, access_token=access_token, access_token_secret=access_token_secret)
+        client = tweepy.Client(consumer_key=api_key, consumer_secret=api_secret, access_token=access_token, access_token_secret=access_token_secret)
         # Create a tweet
         # Define the tweet text
         tweet = 'This is an automated test tweet using #Python $BTC'
