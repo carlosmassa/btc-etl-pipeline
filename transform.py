@@ -339,7 +339,7 @@ def transform_data():
             text='Latest Date: ' + str(latest_date_formatted) + ' (' + str(num_data_points_formatted) + ' Data Points)' +
                  '<br>Latest Price: ' + str(latest_price_formatted) + ' (' + str(percent_change_formatted) + f' {change_type} Fair Value); ' + best_quantile_label + ' Quantile' +
                  '<br>Fair Value: $' + str(latest_50_percent_formatted) + ' (50% Quantile)',
-            font=dict(family='Arial', size=16, color='rgb(150,150,150)'),
+            font=dict(family='Arial', size=12, color='rgb(150,150,150)'),
             align='left',  # Explicit alignment option
             showarrow=False
         ))
@@ -351,14 +351,14 @@ def transform_data():
             text='98% to 99.9% Quantile ' + '(' + str(latest_98_percent_formatted) + ' - ' + str(latest_999_percent_formatted) + ')'
             '<br>90% to 98% Quantile ' + '(' + str(latest_90_percent_formatted) + ' - ' + str(latest_98_percent_formatted) + ')'
             '<br>0.1% to 5% Quantile ' + '(' + str(latest_01_percent_formatted) + ' - ' + str(latest_5_percent_formatted) + ')',
-            font=dict(family='Arial', size=16, color='rgb(150,150,150)'),
+            font=dict(family='Arial', size=12, color='rgb(150,150,150)'),
             align='left',  # Explicit alignment option
             showarrow=False
         ))
         
         annotations.append(dict(
             x=1,
-            y=-0.15,
+            y=-0.13,
             text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>',
             showarrow=False,
             xref='paper',
