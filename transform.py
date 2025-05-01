@@ -48,7 +48,7 @@ def transform_data():
             xanchor='right',  # Align annotation to the right of the paper
             yanchor='auto',   # Auto-anchor to adjust automatically
             xshift=0,
-            yshift=0          # Fine-tune vertical positioning
+            yshift=0,          # Fine-tune vertical positioning
             font=dict(color='white')
         ))
         
