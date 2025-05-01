@@ -22,14 +22,14 @@ def extract_data():
             frequency=frequency,
         )
         data = pd.DataFrame(metrics)
-        
+        print(data)
         # Ensure correct column format
         data['time'] = pd.to_datetime(data['time'])
         data['asset'] = asset
         data['PriceUSD'] = pd.to_numeric(data['PriceUSD'], errors='coerce')
         data = data[['time', 'asset', 'PriceUSD']]
         data = data.sort_values('time')
-
+        print(data)
         # Save raw data
         data.to_csv("raw_btc_usd.csv", index=False)
         logging.info(f"Extracted {len(data)} records to raw_btc_usd.csv")
