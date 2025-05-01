@@ -62,7 +62,7 @@ def transform_data():
             yref='paper',
             xanchor='left',
             yanchor='auto',
-            xshift=5,
+            xshift=2,
             yshift=0          # Fine-tune vertical positioning
         ))
 
