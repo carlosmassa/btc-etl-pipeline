@@ -30,6 +30,14 @@ jobs:
         run: python transform.py
       - name: Load data
         run: python load.py
+      - name: Post chart to X
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+        run: python post_to_x.py
       - name: Upload raw data and JPG artifact
         uses: actions/upload-artifact@v4
         with:
@@ -64,14 +72,5 @@ jobs:
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
       - name: List all files recursively (debug)
         run: find . -name "post_to_x.py"
-      - name: Print current working directory
-        run: pwd
-      - name: Post chart to X
-        env:
-          X_API_KEY: ${{ secrets.X_API_KEY }}
-          X_API_SECRET: ${{ secrets.X_API_SECRET }}
-          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
-          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
-        run: python /home/runner/work/btc-etl-pipeline/post_to_x.py
+
 
