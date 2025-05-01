@@ -62,6 +62,8 @@ jobs:
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
       - name: List all files recursively (debug)
         run: find . -name "post_to_x.py"
+      - name: Print current working directory
+        run: pwd
       - name: Post chart to X
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
