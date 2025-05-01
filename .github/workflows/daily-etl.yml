@@ -23,12 +23,20 @@ jobs:
         run: python transform.py
       - name: Load data
         run: python load.py
+      - name: Upload raw data artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: raw-data
+          path: raw_btc_usd.csv
+          retention-days: 1
       - name: Commit chart to gh-pages branch
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+          # Clean untracked files to avoid checkout conflicts
+          git clean -fd
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             git fetch origin gh-pages
             git checkout gh-pages
@@ -36,6 +44,8 @@ jobs:
             git checkout --orphan gh-pages
             git rm -rf .
           fi
+          # Move chart to charts/ (already done by load.py, but ensure directory exists)
+          mkdir -p charts
           git add charts/btc_usd_chart.html
           git commit -m "Update BTC/USD chart for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
