@@ -69,4 +69,5 @@ jobs:
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
         run: python post_to_x.py
         working-directory: ./btc-etl-pipeline
-          
+      - name: List all files recursively (debug)
+        run: find . -name "post_to_x.py"
