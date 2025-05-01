@@ -23,25 +23,22 @@ jobs:
         run: python transform.py
       - name: Load data
         run: python load.py
-      - name: Upload raw data artifact
+      - name: Upload raw data and JPG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: raw-data
-          path: raw_btc_usd.csv
+          name: pipeline-output
+          path: |
+            raw_btc_usd.csv
+            charts/btc_usd_chart.jpg
           retention-days: 1
-      - name: Post chart to X
-        env:
-          X_API_KEY: ${{ secrets.X_API_KEY }}
-          X_API_SECRET: ${{ secrets.X_API_SECRET }}
-          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
-        run: python post_to_x.py
       - name: Commit chart to gh-pages branch
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+          # Debug: List files
+          ls -la charts/
           mkdir -p temp
           mv charts/btc_usd_chart.html temp/ || true
           mv charts/btc_usd_chart.jpg temp/ || true
@@ -55,6 +52,15 @@ jobs:
           mkdir -p charts
           mv temp/btc_usd_chart.html charts/ || true
           mv temp/btc_usd_chart.jpg charts/ || true
+          # Debug: List files after move
+          ls -la charts/
           git add charts/btc_usd_chart.html charts/btc_usd_chart.jpg
           git commit -m "Update BTC/USD chart and JPG for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
+      - name: Post chart to X
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+        run: python post_to_x.py || true
