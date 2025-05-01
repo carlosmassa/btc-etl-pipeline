@@ -35,7 +35,7 @@ def transform_data():
         df = btc_data.reset_index()
         df.Date = pd.to_datetime(df.Date)
         df.sort_values(by="Date", inplace = True)
-        genesis = "2009-01-03"
+        genesis = pd.to_datetime("2009-01-03")
         print(df)
         print("genesis Date:", genesis)
         #Genesis block is 3rd Jan, 2009, above value is actually 2nd Jan
