@@ -40,6 +40,19 @@ def transform_data():
             text="Chart by: @CarlesMassa",
             showarrow=False, xref='paper', yref='paper',
             xanchor='right', yanchor='auto', xshift=0, yshift=0))
+
+        annotations.append(dict(
+            x=1,              # Position annotation at the far right
+            y=-0.15,          # Slightly lower than the legend (adjust as needed)
+            text="Chart by: @CarlesMassa",  # Annotation text
+            showarrow=False, 
+            xref='paper', 
+            yref='paper',     # Use paper coordinates to position annotation
+            xanchor='right',  # Align annotation to the right of the paper
+            yanchor='auto',   # Auto-anchor to adjust automatically
+            xshift=0, 
+            yshift=0          # Fine-tune vertical positioning
+        ))
         
         # Customize layout
         fig.update_layout(
@@ -52,8 +65,14 @@ def transform_data():
             plot_bgcolor='black',
             paper_bgcolor='black',
             showlegend=True,
-            legend_orientation="h",
-            annotations=annotations,
+            legend=dict(
+                x=0,  # Left position (adjust as needed)
+                y=0,  # Bottom position (for horizontal legend)
+                xanchor='left',
+                yanchor='bottom',
+                orientation="h"  # Horizontal orientation
+            ),
+            annotations=annotations,  # Your annotations
         )
 
         fig.update_yaxes(showgrid=False)
@@ -73,6 +92,7 @@ def transform_data():
 
         # Save chart as HTML with config
         fig.write_html("btc_usd_chart.html", auto_open=False, config=config)
+        # Chart URL: https://carlosmassa.github.io/btc-etl-pipeline/charts/btc_usd_chart.html
         logging.info("Plotly chart saved as btc_usd_chart.html with custom config")
 
         # Save chart as HD JPG
