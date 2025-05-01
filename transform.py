@@ -12,8 +12,8 @@ def transform_data():
 
         # Clean data
         df['time'] = pd.to_datetime(df['time'])
-        df['ReferenceRateUSD'] = df['ReferenceRateUSD'].astype(float)
-        df = df.dropna(subset=['ReferenceRateUSD'])  # Remove missing prices
+        df['PriceUSD'] = df['PriceUSD'].astype(float)
+        df = df.dropna(subset=['PriceUSD'])  # Remove missing prices
         df = df.sort_values('time')  # Ensure chronological order
         df = df.set_index('time')  # Set date as index
 
@@ -26,7 +26,7 @@ def transform_data():
         fig.add_trace(
             go.Scatter(
                 x=df.index,
-                y=df['ReferenceRateUSD'],
+                y=df['PriceUSD'],
                 mode='lines',
                 name='BTC/USD',
                 line=dict(color='orange', width=2)
