@@ -27,7 +27,7 @@ def post_to_x():
             raise FileNotFoundError(f"JPG file not found: {jpg_path}")
 
         caption = "Daily BTC/USD Price Chart (2009–2025) #Bitcoin #Crypto"
-        api.update_with_media(jpg_path, status=caption)
+        api.update_status_with_media(filename=jpg_path, status=caption)
         logging.info("Posted JPG chart to X successfully using v1.1 endpoint")
     except Exception as e:
         logging.error(f"Failed to post to X: {str(e)}")
