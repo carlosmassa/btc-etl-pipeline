@@ -10,7 +10,7 @@ def transform_data():
         # Load raw data
         df = pd.read_csv("raw_btc_usd.csv")
         logging.info("Transforming data...")
-
+        print(df)
         # Clean data
         df['Date'] = pd.to_datetime(df['time'])
         df['PriceUSD'] = df['PriceUSD'].astype(float)
@@ -71,7 +71,7 @@ def transform_data():
         fig.add_trace(
             go.Scatter(
                 x=df.index,
-                y=df['PriceUSD'],
+                y=df['Value'],
                 mode='lines',
                 name='BTC/USD',
                 line=dict(color='orange', width=2)
