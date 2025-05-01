@@ -37,18 +37,35 @@ def transform_data():
         # Anotations
         annotations = []
 
+        # "Chart by:" — plain text
         annotations.append(dict(
-            x=1,              # Position annotation at the far right
+            x=0.99,           # Position annotation at the far right
             y=-0.12,          # Slightly lower than the legend (adjust as needed)
-            text='Chart by: <span style="color: white;"><a href="https://x.com/CarlesMassa" target="_blank" style="color: white; text-decoration: none;">@CarlesMassa</a></span>',  # Annotation text
-            showarrow=False, 
-            xref='paper', 
+            text='Chart by:',
+            showarrow=False,
+            xref='paper',
             yref='paper',     # Use paper coordinates to position annotation
             xanchor='right',  # Align annotation to the right of the paper
             yanchor='auto',   # Auto-anchor to adjust automatically
-            xshift=0, 
+            xshift=0,
+            yshift=0          # Fine-tune vertical positioning
+            font=dict(color='white')
+        ))
+        
+        # "@CarlesMassa" — clickable link only
+        annotations.append(dict(
+            x=1,              # Position annotation at the far right
+            y=-0.12,          # Slightly lower than the legend (adjust as needed)
+            text='<a href="https://x.com/CarlesMassa" target="_blank" style="color:white;text-decoration:none;">@CarlesMassa</a>',
+            showarrow=False,
+            xref='paper',
+            yref='paper',
+            xanchor='left',
+            yanchor='auto',
+            xshift=5,
             yshift=0          # Fine-tune vertical positioning
         ))
+
         
         # Customize layout
         fig.update_layout(
