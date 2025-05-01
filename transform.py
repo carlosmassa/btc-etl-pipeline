@@ -99,29 +99,6 @@ def transform_data():
             df[f'QuantRegPredict_{label}'] = quant_reg_results[q].predict(X_with_const)
             df[f'LinearReg_{label}'] = np.exp(df[f'QuantRegPredict_{label}'])
         
-        # Now use the custom chart_utils function to visualize the results on a linear scale
-        # First, plot the actual data and all quantile regression lines
-        
-        chart_utils.single_axis_chart_special(
-            df, x_series='X',
-            y1_series=['Value'] + [f'LinearReg_{label}' for label in quantile_labels],
-            y1_series_axis_type='log',
-            y1_series_axis_range=[-2, 6],
-            title="Price Quantile Regression (0.1%, 5%, 50%, 90%, 98%, 99.9%)")
-        
-        chart_utils.single_axis_chart_special(
-            df, x_series='ind',
-            y1_series=['Value'] + [f'LinearReg_{label}' for label in quantile_labels],
-            y1_series_axis_type='log',
-            y1_series_axis_range=[-2, 6],
-            title="Price Quantile Regression (0.1%, 5%, 50%, 90%, 98%, 99.9%)")
-        
-        chart_utils.single_axis_chart_special(
-            df, x_series='Date',
-            y1_series=['Value'] + [f'LinearReg_{label}' for label in quantile_labels],
-            y1_series_axis_type='log',
-            y1_series_axis_range=[-2, 6],
-            title="Price Quantile Regression (0.1%, 5%, 50%, 90%, 98%, 99.9%)")
         
         # Coefficient and intercept for the 50% quantile (as an example)
         print(f"Coefficient (50% quantile): {quant_reg_results[0.5].params[1]}")
