@@ -9,6 +9,18 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0  # Full history to ensure latest commit
+      - name: Debug: List repository files
+        run: |
+          ls -la
+          # Confirm post_to_x.py exists
+          if [ -f "post_to_x.py" ]; then
+            echo "post_to_x.py found"
+          else
+            echo "post_to_x.py NOT found"
+          fi
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -65,5 +77,6 @@ jobs:
           X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
         run: |
-          ls -la charts/  # Debug: Confirm JPG exists before posting
-          python post_to_x.py || true
+          ls -la charts/  # Debug: Confirm JPG exists
+          ls -la .  # Debug: Confirm post_to_x.py exists
+          python post_to_x.py
