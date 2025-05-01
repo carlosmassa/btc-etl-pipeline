@@ -20,8 +20,6 @@ def extract_data():
             assets=asset,
             metrics=metric,
             frequency=frequency,
-            start_time=start_time,
-            end_time=end_time
         )
         data = pd.DataFrame(metrics)
         
