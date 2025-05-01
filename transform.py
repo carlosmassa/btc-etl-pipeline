@@ -20,6 +20,13 @@ def transform_data():
 
 
 
+        # fix date formats and set the data as the index
+        btc_data = df.reset_index().rename(columns={df.index.name:'Date'})
+        btc_data['Date'] = btc_data.Date.apply(lambda x: x.date()) # where dates is your datetime column
+        btc_data['Date'] = pd.to_datetime(btc_data['Date'], format='%Y-%m-%d')
+        btc_data['Value'] = btc_data['PriceUSD']
+        btc_dat = btc_data.drop(['PriceUSD'], axis=1)
+
 
         # Find Genesis and create an index from the genesis date
         genesis = df.Date[0]
