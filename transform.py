@@ -12,11 +12,11 @@ def transform_data():
         logging.info("Transforming data...")
 
         # Clean data
-        df['time'] = pd.to_datetime(df['time'])
+        df['Date'] = pd.to_datetime(df['time'])
         df['PriceUSD'] = df['PriceUSD'].astype(float)
         df = df.dropna(subset=['PriceUSD'])  # Remove missing prices
-        df = df.sort_values('time')  # Ensure chronological order
-        df = df.set_index('time')  # Set date as index
+        df = df.sort_values('Date')  # Ensure chronological order
+        df = df.set_index('Date')  # Set date as index
 
         # Save cleaned data
         df.to_csv("transformed_btc_usd.csv")
