@@ -222,8 +222,7 @@ def transform_data():
         latest_98_percent = df['LinearReg_98%'].iloc[-1]
         latest_999_percent = df['LinearReg_99.9%'].iloc[-1]
         
-        annotations = []
-        
+       
         latest_date_formatted = latest_date.strftime("%d %B %Y")
         latest_price_formatted = "{:,.0f}".format(latest_price)
         latest_50_percent_formatted = "{:,.0f}".format(latest_50_percent)
@@ -331,7 +330,7 @@ def transform_data():
         ###################################################################################################################
         
         
-        
+        annotations = []
         
         # Create the annotation text once
         annotations.append(dict(
@@ -357,10 +356,18 @@ def transform_data():
             showarrow=False
         ))
         
-        annotations.append(dict(x=1, y=-0.1,
-                         text="Chart by: @CarlesMassa",
-                         showarrow=False, xref='paper', yref='paper',
-                         xanchor='right', yanchor='auto', xshift=0, yshift=0))
+        annotations.append(dict(
+            x=1,
+            y=-0.15,
+            text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>',
+            showarrow=False,
+            xref='paper',
+            yref='paper',
+            xanchor='right',
+            yanchor='auto',
+            xshift=0,
+            yshift=0
+        ))
         
         # Update layout
         fig.update_layout(
@@ -377,78 +384,6 @@ def transform_data():
         
         fig.update_yaxes(showgrid=False)
         
-        # Show the figure
-        fig.show(config={'modeBarButtonsToAdd':['drawline',
-                                                'drawopenpath',
-                                                'drawcircle',
-                                                'drawrect',
-                                                'eraseshape',
-                                                'v1hovermode',
-                                                'togglespikelines',
-                                               ]})
-        
-
-
-        ######################################################################################################################################
-        ######################################################################################################################################
-        ######################################################################################################################################
-
-        # Create Plotly chart
-        fig = go.Figure()
-        fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['Value'],
-                mode='lines',
-                name='BTC/USD',
-                line=dict(color='orange', width=2)
-            )
-        )
-
-        # Anotations
-        annotations = []
-
-        # Anotations
-        annotations = []
-        annotations.append(dict(x=1, y=-0.1,
-            text="Chart by: @CarlesMassa",
-            showarrow=False, xref='paper', yref='paper',
-            xanchor='right', yanchor='auto', xshift=0, yshift=0))
-
-        annotations.append(dict(
-            x=1,              # Position annotation at the far right
-            y=-0.15,          # Slightly lower than the legend (adjust as needed)
-            text="Chart by: @CarlesMassa",  # Annotation text
-            showarrow=False, 
-            xref='paper', 
-            yref='paper',     # Use paper coordinates to position annotation
-            xanchor='right',  # Align annotation to the right of the paper
-            yanchor='auto',   # Auto-anchor to adjust automatically
-            xshift=0, 
-            yshift=0          # Fine-tune vertical positioning
-        ))
-        
-
-        
-        # Customize layout
-        fig.update_layout(
-            title='BTC/USD Price (Daily)',
-            xaxis_title='Date',
-            yaxis_title='Price (USD)',
-            yaxis_type='log',
-            hovermode='closest',
-            template='plotly_dark',  # Black background
-            plot_bgcolor='black',
-            paper_bgcolor='black',
-            showlegend=True,
-            legend=dict(
-                orientation="h"  # Horizontal orientation
-            ),
-            annotations=annotations,  # Your annotations
-        )
-
-        fig.update_yaxes(showgrid=False)
-
         # Define configuration for mode bar buttons
         config = {
             'modeBarButtonsToAdd': [
@@ -461,6 +396,12 @@ def transform_data():
                 'togglespikelines'
             ]
         }
+        
+
+        ######################################################################################################################################
+        ######################################################################################################################################
+        ######################################################################################################################################
+
 
         # Save chart as HTML with config
         fig.write_html("btc_usd_chart.html", auto_open=False, config=config)
