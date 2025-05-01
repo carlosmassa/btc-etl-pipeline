@@ -26,10 +26,10 @@ def post_to_x():
             try:
                 api.verify_credentials()
             except Exception as e:
-                logger.error("Error creating API", exc_info=True)
+                logging.info("Error creating API")
                 print("Error creating API")
                 raise e
-            logger.info("API created")
+            logging.info("API created")
             print("API created")
             return api
 
