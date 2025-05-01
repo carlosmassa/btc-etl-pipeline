@@ -43,10 +43,10 @@ def post_to_x():
             logging.info("X API authentication failed!")
 
         #get my user id and follower count
-        user = api.get_user(screen_name='carlesmassa')
-        print(user.id)
-        print(user.screen_name)  # User Name
-        print(user.followers_count) #User Follower Count
+        #user = api.get_user(screen_name='carlesmassa')
+        #print(user.id)
+        #print(user.screen_name)  # User Name
+        #print(user.followers_count) #User Follower Count
 
         # Create a tweet
         # Define the tweet text
@@ -56,14 +56,6 @@ def post_to_x():
         # Generate text tweet
         api.update_status(tweet)
 
-        # Post JPG with caption using v1.1 endpoint
-        jpg_path = "charts/btc_usd_chart.jpg"
-        if not os.path.exists(jpg_path):
-            raise FileNotFoundError(f"JPG file not found: {jpg_path}")
-
-        caption = "Daily BTC/USD Price Chart (2009–2025) #Bitcoin #Crypto"
-        api.update_status_with_media(filename=jpg_path, status=caption)
-        logging.info("Posted JPG chart to X successfully using v1.1 endpoint")
     except Exception as e:
         logging.error(f"Failed to post to X: {str(e)}")
         raise
