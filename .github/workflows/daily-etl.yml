@@ -80,3 +80,4 @@ jobs:
           ls -la charts/  # Debug: Confirm JPG exists
           ls -la .  # Debug: Confirm post_to_x.py exists
           python post_to_x.py
+          
