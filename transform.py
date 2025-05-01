@@ -28,7 +28,7 @@ def transform_data():
         print(df)
         print("genesis Date:", genesis)
         #Genesis block is 3rd Jan, 2009, above value is actually 2nd Jan
-        df = df[df.Date >= "2010-09-16"]#useful data from exchanges from 2010 onwards
+        df = df[df.Date >= "2010-07-18"]#useful data from exchanges from 2010 onwards
         df=df.reset_index(drop=True)
         df=df.drop("index", axis=1)
         #delta = (df.Date[0] - genesis).days - 1
