@@ -336,7 +336,7 @@ def transform_data():
         annotations.append(dict(
             xref='paper', yref='paper', x=0.40, y=-0.05,
             xanchor='center', yanchor='top',
-            text='Latest Date: ' + str(latest_date_formatted) + ' (' + str(num_data_points_formatted) + ' Data Points)' +
+            text='Chart Date: ' + str(latest_date_formatted) + ' (' + str(num_data_points_formatted) + ' Data Points)' +
                  '<br>Latest Price: ' + str(latest_price_formatted) + ' (' + str(percent_change_formatted) + f' {change_type} Fair Value); ' + best_quantile_label + ' Quantile' +
                  '<br>Fair Value: $' + str(latest_50_percent_formatted) + ' (50% Quantile)',
             font=dict(family='Arial', size=12, color='rgb(150,150,150)'),
