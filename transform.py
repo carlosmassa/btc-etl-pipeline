@@ -62,10 +62,6 @@ def transform_data():
             paper_bgcolor='black',
             showlegend=True,
             legend=dict(
-                x=0,  # Left position (adjust as needed)
-                y=0,  # Bottom position (for horizontal legend)
-                xanchor='left',
-                yanchor='bottom',
                 orientation="h"  # Horizontal orientation
             ),
             annotations=annotations,  # Your annotations
