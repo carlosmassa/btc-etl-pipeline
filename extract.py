@@ -12,10 +12,8 @@ def extract_data():
         
         # Define parameters
         asset = "btc"
-        metric = "ReferenceRateUSD"
+        metric = "PriceUSD"
         frequency = "1d"
-        end_time = datetime.now().strftime('%Y-%m-%d')
-        start_time = "2009-01-03"  # Bitcoin's genesis block
 
         logging.info(f"Fetching BTC/USD price data from {start_time} to {end_time}...")
         metrics = client.get_asset_metrics(
@@ -30,8 +28,8 @@ def extract_data():
         # Ensure correct column format
         data['time'] = pd.to_datetime(data['time'])
         data['asset'] = asset
-        data['ReferenceRateUSD'] = pd.to_numeric(data['ReferenceRateUSD'], errors='coerce')
-        data = data[['time', 'asset', 'ReferenceRateUSD']]
+        data['PriceUSD'] = pd.to_numeric(data['PriceUSD'], errors='coerce')
+        data = data[['time', 'asset', 'PriceUSD']]
         data = data.sort_values('time')
 
         # Save raw data
