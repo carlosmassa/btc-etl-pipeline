@@ -1,5 +1,6 @@
 import pandas as pd
 import plotly.graph_objects as go
+import os
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -70,9 +71,15 @@ def transform_data():
             ]
         }
 
-        # Save chart as HTML
+        # Save chart as HTML with config
         fig.write_html("btc_usd_chart.html", auto_open=False, config=config)
-        logging.info("Plotly chart saved as btc_usd_chart.html")
+        logging.info("Plotly chart saved as btc_usd_chart.html with custom config")
+
+        # Save chart as HD JPG
+        os.makedirs("charts", exist_ok=True)
+        jpg_path = "charts/btc_usd_chart.jpg"
+        fig.write_image(jpg_path, width=1600, height=900, scale=2)
+        logging.info(f"HD JPG chart saved as {jpg_path}")
     except Exception as e:
         logging.error(f"Transformation failed: {str(e)}")
         raise
