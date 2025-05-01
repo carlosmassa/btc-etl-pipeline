@@ -15,7 +15,7 @@ def extract_data():
         metric = "PriceUSD"
         frequency = "1d"
 
-        logging.info(f"Fetching BTC/USD price data from {start_time} to {end_time}...")
+        logging.info(f"Fetching BTC/USD price data")
         metrics = client.get_asset_metrics(
             assets=asset,
             metrics=metric,
