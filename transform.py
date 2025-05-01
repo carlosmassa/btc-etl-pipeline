@@ -179,7 +179,7 @@ def transform_data():
         fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_0.1%'], fill=None, mode='lines', line=dict(color='#A8D800', width=1), name='1% Quantile', showlegend=False))
         fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_5%'], fill='tonexty', mode='lines', line=dict(color='#00FF7F', width=0), name='5% Quantile', showlegend=False))
         fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_90%'], fill=None, mode='lines', line=dict(color='#00BFFF', width=1), name='90% Quantile', showlegend=False))
-        fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_98%'], fill='tonexty', mode='lines', line=dict(color='#87CEFA', width=0), name='98% Quantile', showlegend=False))
+        #fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_98%'], fill='tonexty', mode='lines', line=dict(color='#87CEFA', width=0), name='98% Quantile', showlegend=False))
         fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_98%'], fill=None, mode='lines', line=dict(color='#FF6347', width=1), name='98% Quantile', showlegend=False))
         fig.add_trace(go.Scatter(x=combined_df['Date'], y=combined_df['LinearReg_99.9%'], fill='tonexty', mode='lines', line=dict(color='#FF4500', width=0), name='99.9% Quantile', showlegend=False))
         
@@ -346,7 +346,7 @@ def transform_data():
         
         
         annotations.append(dict(
-            xref='paper', yref='paper', x=0.6, y=-0.05,
+            xref='paper', yref='paper', x=0.65, y=-0.05,
             xanchor='center', yanchor='top',
             text='98% to 99.9% Quantile ' + '(' + str(latest_98_percent_formatted) + ' - ' + str(latest_999_percent_formatted) + ')'
             '<br>90% to 98% Quantile ' + '(' + str(latest_90_percent_formatted) + ' - ' + str(latest_98_percent_formatted) + ')'
