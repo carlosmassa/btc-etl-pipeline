@@ -1,6 +1,8 @@
 import tweepy
 import os
 import logging
+import time
+import datetime
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -43,20 +45,41 @@ def post_to_x():
             raise FileNotFoundError(f"JPG file not found: {jpg_path}")
         logging.info(f"JPG file found: {jpg_path}")
 
-        media = api.media_upload(filename=jpg_path)
-        media_id = media.media_id
-        logging.info(f"Media uploaded successfully, media ID: {media_id}")
+        MAX_RETRY_DURATION = 5 * 60 * 60  # 5 hours in seconds
+        RETRY_INTERVAL = 5 * 60           # 5 minutes in seconds
 
-        client = tweepy.Client(
-            consumer_key=api_key,
-            consumer_secret=api_secret,
-            access_token=access_token,
-            access_token_secret=access_token_secret)
+        start_time = time.time()
 
-        # Create a tweet
-        caption = "Daily BTC/USD Power Law Probability Channel Chart #Bitcoin"
-        client.create_tweet(text=caption, media_ids=[media_id])
-        logging.info("Posted JPG chart to X successfully using v2 endpoint")
+        while True:
+            try:
+                # Try to post the JPG Chart to X
+                logging.info("Trying to post the JPG Chart to X...")
+                print("Trying to post the JPG Chart to X...")
+                media = api.media_upload(filename=jpg_path)
+                media_id = media.media_id
+                logging.info(f"Media uploaded successfully, media ID: {media_id}")
+        
+                client = tweepy.Client(
+                    consumer_key=api_key,
+                    consumer_secret=api_secret,
+                    access_token=access_token,
+                    access_token_secret=access_token_secret)
+        
+                # Create a tweet
+                caption = "Daily BTC/USD Power Law Probability Channel Chart #Bitcoin"
+                client.create_tweet(text=caption, media_ids=[media_id])
+                logging.info("Posted JPG chart to X successfully using v2 endpoint")
+                print("Posted JPG chart to X successfully using v2 endpoint")
+                break
+            except Exception as e:
+                elapsed = time.time() - start_time
+                if elapsed >= MAX_RETRY_DURATION:
+                    raise TimeoutError(f"Operation failed after {MAX_RETRY_DURATION/3600} hours") from e
+        
+                print(f"[{datetime.datetime.now()}] Error: {e}")
+                print(f"Retrying in {RETRY_INTERVAL // 60} minutes...")
+                time.sleep(RETRY_INTERVAL)
+    
     except Exception as e:
         logging.error(f"Failed to post to X: {str(e)}")
         raise
