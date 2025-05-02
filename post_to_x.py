@@ -55,6 +55,10 @@ def post_to_x():
                 # Try to post the JPG Chart to X
                 logging.info("Trying to post the JPG Chart to X...")
                 print("Trying to post the JPG Chart to X...")
+
+                # Example: raise an error for testing
+                raise Exception("Simulated error")
+                
                 media = api.media_upload(filename=jpg_path)
                 media_id = media.media_id
                 logging.info(f"Media uploaded successfully, media ID: {media_id}")
