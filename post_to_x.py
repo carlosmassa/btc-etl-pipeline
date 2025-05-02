@@ -80,6 +80,8 @@ def post_to_x():
                 if elapsed >= MAX_RETRY_DURATION:
                     raise TimeoutError(f"Operation failed after {MAX_RETRY_DURATION/3600} hours") from e
         
+                logging.info(f"[{datetime.datetime.now()}] Error: {e}")
+                logging.info(f"Retrying in {RETRY_INTERVAL // 60} minutes...")
                 print(f"[{datetime.datetime.now()}] Error: {e}")
                 print(f"Retrying in {RETRY_INTERVAL // 60} minutes...")
                 time.sleep(RETRY_INTERVAL)
