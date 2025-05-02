@@ -54,10 +54,9 @@ def post_to_x():
             try:
                 # Try to post the JPG Chart to X
                 logging.info("Trying to post the JPG Chart to X...")
-                print("Trying to post the JPG Chart to X...")
 
                 # Example: raise an error for testing
-                raise Exception("Simulated error")
+                # raise Exception("Simulated error")
                 
                 media = api.media_upload(filename=jpg_path)
                 media_id = media.media_id
@@ -73,7 +72,6 @@ def post_to_x():
                 caption = "Daily BTC/USD Power Law Probability Channel Chart #Bitcoin"
                 client.create_tweet(text=caption, media_ids=[media_id])
                 logging.info("Posted JPG chart to X successfully using v2 endpoint")
-                print("Posted JPG chart to X successfully using v2 endpoint")
                 break
             except Exception as e:
                 elapsed = time.time() - start_time
@@ -81,9 +79,8 @@ def post_to_x():
                     raise TimeoutError(f"Operation failed after {MAX_RETRY_DURATION/3600} hours") from e
         
                 logging.info(f"[{datetime.datetime.now()}] Error: {e}")
-                logging.info(f"Retrying in {RETRY_INTERVAL // 60} minutes...")
-                print(f"[{datetime.datetime.now()}] Error: {e}")
-                print(f"Retrying in {RETRY_INTERVAL // 60} minutes...")
+                minutes_left = int((MAX_RETRY_DURATION - elapsed) // 60)
+                logging.info(f"Retrying in {RETRY_INTERVAL // 60} minutes... {minutes_left} minutes left until giving up.")
                 time.sleep(RETRY_INTERVAL)
     
     except Exception as e:
