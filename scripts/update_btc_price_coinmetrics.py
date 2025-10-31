@@ -1,13 +1,10 @@
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pathlib import Path
 from coinmetrics.api_client import CoinMetricsClient
 
 # === CONFIG ===
-# Local path to CSV
 CSV_PATH = Path("data/BTC_Prices.csv")
-
-# Optional: raw GitHub URL fallback
 GITHUB_RAW_CSV = "https://raw.githubusercontent.com/carlosmassa/btc-etl-pipeline/main/data/BTC_Prices.csv"
 
 ASSET = "btc"
@@ -53,36 +50,44 @@ def load_existing_csv() -> pd.DataFrame:
     if CSV_PATH.exists():
         df = pd.read_csv(CSV_PATH, parse_dates=["Date"])
         log(f"✅ Loaded local CSV with {len(df)} rows.")
-        return df
     else:
         log("⚠️ CSV file not found locally. Trying GitHub raw URL...")
         try:
             df = pd.read_csv(GITHUB_RAW_CSV, parse_dates=["Date"])
             log(f"✅ Loaded CSV from GitHub with {len(df)} rows.")
-            return df
         except Exception as e:
             log(f"⚠️ Could not fetch CSV from GitHub: {e}")
             log("ℹ️ Creating new empty DataFrame.")
-            return pd.DataFrame(columns=["Date", "Value"])
+            df = pd.DataFrame(columns=["Date", "Value"])
+
+    # Ensure Date column is datetime
+    if not df.empty:
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
+    return df
 
 
 def update_csv():
     """Append new BTC prices from CoinMetrics since the last CSV date."""
     log("🚀 Starting CoinMetrics BTC price update process...")
 
-    # --- Load existing CSV ---
     df_existing = load_existing_csv()
 
     if df_existing.empty:
-        start_date = "2010-07-17"  # Bitcoin's first available date
+        start_date_obj = datetime.strptime("2010-07-17", "%Y-%m-%d").date()  # first BTC data
         log("ℹ️ Existing CSV is empty. Starting from first BTC data date.")
     else:
-        # Ensure Date column is datetime
-        df_existing["Date"] = pd.to_datetime(df_existing["Date"], errors="coerce")
         last_date = df_existing["Date"].max().date()
-        start_date = (last_date + timedelta(days=1)).strftime("%Y-%m-%d")
+        start_date_obj = last_date + timedelta(days=1)
         log(f"📊 Existing CSV has {len(df_existing)} rows (last date: {last_date}).")
-        log(f"📆 Fetching data from {start_date} onwards...")
+
+    today = date.today()
+    if start_date_obj > today:
+        log(f"ℹ️ Start date {start_date_obj} is in the future. Nothing to fetch.")
+        return
+
+    start_date = start_date_obj.strftime("%Y-%m-%d")
+    log(f"📆 Fetching data from {start_date} onwards...")
 
     # --- Fetch new data ---
     df_new = get_btc_data(start_date)
@@ -114,4 +119,3 @@ if __name__ == "__main__":
     except Exception as e:
         log(f"🔥 Fatal error during ETL process: {e}")
         raise
-        
