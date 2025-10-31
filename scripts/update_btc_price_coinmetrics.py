@@ -4,7 +4,12 @@ from pathlib import Path
 from coinmetrics.api_client import CoinMetricsClient
 
 # === CONFIG ===
+# Local path to CSV
 CSV_PATH = Path("data/BTC_Prices.csv")
+
+# Optional: raw GitHub URL fallback
+GITHUB_RAW_CSV = "https://raw.githubusercontent.com/carlosmassa/btc-etl-pipeline/main/data/BTC_Prices.csv"
+
 ASSET = "btc"
 METRIC = "PriceUSD"
 FREQUENCY = "1d"
@@ -15,7 +20,7 @@ def log(msg: str):
     print(f"[{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}] {msg}", flush=True)
 
 
-def get_btc_data(start_date: str):
+def get_btc_data(start_date: str) -> pd.DataFrame:
     """
     Extract BTC PriceUSD data from CoinMetrics starting from `start_date`.
     Returns a DataFrame with 'Date' and 'Value' columns.
@@ -43,25 +48,41 @@ def get_btc_data(start_date: str):
     return df[["Date", "Value"]]
 
 
+def load_existing_csv() -> pd.DataFrame:
+    """Load existing CSV, or fallback to GitHub raw URL if missing."""
+    if CSV_PATH.exists():
+        df = pd.read_csv(CSV_PATH, parse_dates=["Date"])
+        log(f"✅ Loaded local CSV with {len(df)} rows.")
+        return df
+    else:
+        log("⚠️ CSV file not found locally. Trying GitHub raw URL...")
+        try:
+            df = pd.read_csv(GITHUB_RAW_CSV, parse_dates=["Date"])
+            log(f"✅ Loaded CSV from GitHub with {len(df)} rows.")
+            return df
+        except Exception as e:
+            log(f"⚠️ Could not fetch CSV from GitHub: {e}")
+            log("ℹ️ Creating new empty DataFrame.")
+            return pd.DataFrame(columns=["Date", "Value"])
+
+
 def update_csv():
     """Append new BTC prices from CoinMetrics since the last CSV date."""
     log("🚀 Starting CoinMetrics BTC price update process...")
 
     # --- Load existing CSV ---
-    if not CSV_PATH.exists():
-        log("⚠️ CSV file not found. Creating new file...")
+    df_existing = load_existing_csv()
+
+    if df_existing.empty:
         start_date = "2010-07-17"  # Bitcoin's first available date
-        df_existing = pd.DataFrame(columns=["Date", "Value"])
+        log("ℹ️ Existing CSV is empty. Starting from first BTC data date.")
     else:
-        df_existing = pd.read_csv(CSV_PATH, parse_dates=["Date"])
-        if df_existing.empty:
-            start_date = "2010-07-17"
-            log("ℹ️ Existing CSV is empty. Starting from first BTC data date.")
-        else:
-            last_date = df_existing["Date"].max().date()
-            start_date = (last_date + timedelta(days=1)).strftime("%Y-%m-%d")
-            log(f"📊 Existing CSV has {len(df_existing)} rows (last date: {last_date}).")
-            log(f"📆 Fetching data from {start_date} onwards...")
+        # Ensure Date column is datetime
+        df_existing["Date"] = pd.to_datetime(df_existing["Date"], errors="coerce")
+        last_date = df_existing["Date"].max().date()
+        start_date = (last_date + timedelta(days=1)).strftime("%Y-%m-%d")
+        log(f"📊 Existing CSV has {len(df_existing)} rows (last date: {last_date}).")
+        log(f"📆 Fetching data from {start_date} onwards...")
 
     # --- Fetch new data ---
     df_new = get_btc_data(start_date)
@@ -78,6 +99,7 @@ def update_csv():
     df_combined.sort_values("Date", inplace=True)
 
     # --- Save output ---
+    CSV_PATH.parent.mkdir(parents=True, exist_ok=True)
     df_combined.to_csv(CSV_PATH, index=False)
 
     log("💾 CSV updated successfully.")
@@ -92,3 +114,4 @@ if __name__ == "__main__":
     except Exception as e:
         log(f"🔥 Fatal error during ETL process: {e}")
         raise
+        
