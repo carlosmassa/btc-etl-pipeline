@@ -103,6 +103,9 @@ def main():
     df_existing["Date"] = pd.to_datetime(df_existing["Date"], errors="coerce")
     df_new["Date"] = pd.to_datetime(df_new["Date"], errors="coerce")
 
+    # --- Round only new values to 2 decimals ---
+    df_new["Value"] = df_new["Value"].round(2)
+
     # --- Merge and sort ---
     df_updated = (
         pd.concat([df_existing, df_new])
@@ -110,15 +113,9 @@ def main():
         .sort_values("Date")
     )
 
-    # --- Format before saving ---
     # --- Save in DD/MM/YYYY format ---
     df_updated["Date"] = df_updated["Date"].dt.strftime("%d/%m/%Y")
-    # --- Limit to two decimals ---
-    df_updated["Value"] = df_updated["Value"].round(2)  # ✅ round to 2 decimals
-
-    # --- Save to CSV ---
     df_updated.to_csv(CSV_PATH, index=False)
-
 
     log(f"💾 CSV updated successfully. Added {len(df_new)} new rows. Now {len(df_updated)} total.")
     log(f"✅ Last date updated: {df_updated['Date'].iloc[-1]}")
@@ -131,3 +128,4 @@ if __name__ == "__main__":
     except Exception as e:
         log(f"🔥 Fatal error during ETL process: {e}")
         raise
+        
