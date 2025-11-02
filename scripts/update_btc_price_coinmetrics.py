@@ -110,9 +110,15 @@ def main():
         .sort_values("Date")
     )
 
+    # --- Format before saving ---
     # --- Save in DD/MM/YYYY format ---
     df_updated["Date"] = df_updated["Date"].dt.strftime("%d/%m/%Y")
+    # --- Limit to two decimals ---
+    df_updated["Value"] = df_updated["Value"].round(2)  # ✅ round to 2 decimals
+
+    # --- Save to CSV ---
     df_updated.to_csv(CSV_PATH, index=False)
+
 
     log(f"💾 CSV updated successfully. Added {len(df_new)} new rows. Now {len(df_updated)} total.")
     log(f"✅ Last date updated: {df_updated['Date'].iloc[-1]}")
