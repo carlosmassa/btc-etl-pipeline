@@ -1,121 +1,106 @@
 import pandas as pd
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from pathlib import Path
 from coinmetrics.api_client import CoinMetricsClient
+import sys
 
 # === CONFIG ===
 CSV_PATH = Path("data/BTC_Prices.csv")
-GITHUB_RAW_CSV = "https://raw.githubusercontent.com/carlosmassa/btc-etl-pipeline/main/data/BTC_Prices.csv"
-
 ASSET = "btc"
 METRIC = "PriceUSD"
-FREQUENCY = "1d"
+GITHUB_RAW_CSV = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/data/BTC_Prices.csv"
 
-
+# === LOGGING ===
 def log(msg: str):
-    """Formatted logging with timestamps for GitHub Actions."""
-    print(f"[{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}] {msg}", flush=True)
+    """Print timestamped log message"""
+    print(f"[{datetime.utcnow():%Y-%m-%d %H:%M:%S UTC}] {msg}")
 
-
-def get_btc_data(start_date: str) -> pd.DataFrame:
-    """
-    Extract BTC PriceUSD data from CoinMetrics starting from `start_date`.
-    Returns a DataFrame with 'Date' and 'Value' columns.
-    """
-    client = CoinMetricsClient()
-    try:
-        metrics = client.get_asset_metrics(
-            assets=ASSET,
-            metrics=[METRIC],
-            frequency=FREQUENCY,
-            start_time=start_date
-        )
-        df = pd.DataFrame(metrics)
-    except Exception as e:
-        log(f"❌ Error fetching data from CoinMetrics: {e}")
-        return pd.DataFrame(columns=["Date", "Value"])
-
-    if df.empty:
-        return pd.DataFrame(columns=["Date", "Value"])
-
-    df["Date"] = pd.to_datetime(df["time"]).dt.date
-    df["Value"] = pd.to_numeric(df[METRIC], errors="coerce")
-    df.dropna(subset=["Value"], inplace=True)
-
-    return df[["Date", "Value"]]
-
-
+# === LOAD EXISTING CSV ===
 def load_existing_csv() -> pd.DataFrame:
     """Load existing CSV, or fallback to GitHub raw URL if missing."""
     if CSV_PATH.exists():
-        df = pd.read_csv(CSV_PATH, parse_dates=["Date"])
+        df = pd.read_csv(CSV_PATH, dtype={"Date": str, "Value": float})
         log(f"✅ Loaded local CSV with {len(df)} rows.")
     else:
         log("⚠️ CSV file not found locally. Trying GitHub raw URL...")
         try:
-            df = pd.read_csv(GITHUB_RAW_CSV, parse_dates=["Date"])
+            df = pd.read_csv(GITHUB_RAW_CSV, dtype={"Date": str, "Value": float})
             log(f"✅ Loaded CSV from GitHub with {len(df)} rows.")
         except Exception as e:
             log(f"⚠️ Could not fetch CSV from GitHub: {e}")
             log("ℹ️ Creating new empty DataFrame.")
             df = pd.DataFrame(columns=["Date", "Value"])
 
-    # Ensure Date column is datetime
+    # --- Enforce correct date parsing (DD/MM/YYYY) ---
     if not df.empty:
-        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+        try:
+            df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y", errors="coerce")
+        except Exception:
+            df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, errors="coerce")
 
     return df
 
+# === FETCH FROM COINMETRICS ===
+def fetch_from_coinmetrics(start_date: str) -> pd.DataFrame:
+    """Fetch new BTC daily price data from CoinMetrics."""
+    client = CoinMetricsClient()
+    log(f"📆 Fetching data from {start_date} onwards...")
 
-def update_csv():
-    """Append new BTC prices from CoinMetrics since the last CSV date."""
+    try:
+        df_new = client.get_asset_metrics(
+            assets=[ASSET],
+            metrics=[METRIC],
+            frequency="1d",
+            start_time=start_date,
+        ).to_dataframe()
+
+        if df_new.empty:
+            log("ℹ️ No new data returned by CoinMetrics.")
+            return pd.DataFrame(columns=["Date", "Value"])
+
+        df_new.reset_index(inplace=True)
+        df_new = df_new.rename(columns={"time": "Date", METRIC: "Value"})
+        df_new["Date"] = pd.to_datetime(df_new["Date"]).dt.date
+        df_new = df_new[["Date", "Value"]]
+        log(f"✅ Fetched {len(df_new)} new rows from CoinMetrics.")
+        return df_new
+
+    except Exception as e:
+        log(f"❌ Error fetching data from CoinMetrics: {e}")
+        return pd.DataFrame(columns=["Date", "Value"])
+
+# === MAIN UPDATE LOGIC ===
+def main():
     log("🚀 Starting CoinMetrics BTC price update process...")
 
     df_existing = load_existing_csv()
 
     if df_existing.empty:
-        start_date_obj = datetime.strptime("2010-07-17", "%Y-%m-%d").date()  # first BTC data
-        log("ℹ️ Existing CSV is empty. Starting from first BTC data date.")
+        log("⚠️ No existing data found. Fetching full history.")
+        start_date = "2010-07-17"
     else:
-        last_date = df_existing["Date"].max().date()
-        start_date_obj = last_date + timedelta(days=1)
-        log(f"📊 Existing CSV has {len(df_existing)} rows (last date: {last_date}).")
+        last_date = df_existing["Date"].max()
+        log(f"📊 Existing CSV has {len(df_existing)} rows (last date: {last_date:%Y-%m-%d}).")
+        start_date = (last_date + timedelta(days=1)).strftime("%Y-%m-%d")
 
-    today = date.today()
-    if start_date_obj > today:
-        log(f"ℹ️ Start date {start_date_obj} is in the future. Nothing to fetch.")
-        return
+    today = datetime.utcnow().date()
 
-    start_date = start_date_obj.strftime("%Y-%m-%d")
-    log(f"📆 Fetching data from {start_date} onwards...")
+    # Prevent future date fetches
+    if datetime.strptime(start_date, "%Y-%m-%d").date() > today:
+        log(f"ℹ️ Start date {start_date} is in the future. Nothing to fetch.")
+        sys.exit(0)
 
-    # --- Fetch new data ---
-    df_new = get_btc_data(start_date)
-    if df_new.empty:
-        log("ℹ️ No new data returned by CoinMetrics. Nothing to update.")
-        return
+    df_new = fetch_from_coinmetrics(start_date)
 
-    log(f"✅ Retrieved {len(df_new)} new rows from CoinMetrics.")
-    log(f"🕒 New data covers {df_new['Date'].min()} → {df_new['Date'].max()}.")
+    if not df_new.empty:
+        df_updated = pd.concat([df_existing, df_new]).drop_duplicates(subset="Date").sort_values("Date")
+        df_updated["Date"] = df_updated["Date"].dt.strftime("%d/%m/%Y")
+        df_updated.to_csv(CSV_PATH, index=False)
+        log(f"💾 CSV updated successfully. Added {len(df_new)} new rows. Now {len(df_updated)} total.")
+        log(f"✅ Last date updated: {df_updated['Date'].iloc[-1]}")
+    else:
+        log("ℹ️ No new data to append. CSV remains unchanged.")
 
-    # --- Merge datasets ---
-    df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-    df_combined.drop_duplicates(subset=["Date"], inplace=True)
-    df_combined.sort_values("Date", inplace=True)
-
-    # --- Save output ---
-    CSV_PATH.parent.mkdir(parents=True, exist_ok=True)
-    df_combined.to_csv(CSV_PATH, index=False)
-
-    log("💾 CSV updated successfully.")
-    log(f"📈 Added {len(df_new)} new rows. Total rows now: {len(df_combined)}.")
-    log(f"🗓️ Latest available date: {df_combined['Date'].max().date()}.")
-    log("✅ CoinMetrics BTC price update completed successfully.\n")
-
-
+# === RUN ===
 if __name__ == "__main__":
-    try:
-        update_csv()
-    except Exception as e:
-        log(f"🔥 Fatal error during ETL process: {e}")
-        raise
+    main()
