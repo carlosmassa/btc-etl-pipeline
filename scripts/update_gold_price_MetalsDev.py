@@ -14,6 +14,8 @@ MAX_DAYS_PER_CALL = 30
 API_KEY = os.getenv("METALS_DEV_API_KEY")
 if not API_KEY:
     raise ValueError("❌ METALS_DEV_API_KEY environment variable not found. Set it before running.")
+else:
+    print(f"[{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}] 🔑 METALS_DEV_API_KEY loaded successfully (length: {len(API_KEY)} chars)")
 
 
 def log(msg: str):
@@ -35,7 +37,6 @@ def load_existing_csv() -> pd.DataFrame:
             df = pd.DataFrame(columns=["Date", "Value"])
 
     if not df.empty:
-        # Convert to datetime and drop bad rows
         df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y", errors="coerce")
         before_drop = len(df)
         df = df.dropna(subset=["Date"])
@@ -78,20 +79,35 @@ def fetch_timeseries(start_date: date, end_date: date) -> pd.DataFrame:
         f"&start_date={start_date.isoformat()}"
         f"&end_date={end_date.isoformat()}"
     )
+
     try:
         resp = requests.get(url)
         data = resp.json()
-        if "timeseries" in data:
-            rows = []
-            for d_str, prices in data["timeseries"].items():
-                if SYMBOL in prices:
+
+        # Determine correct container key
+        rows = []
+        container_key = None
+        if "timeseries" in data and isinstance(data["timeseries"], dict):
+            container_key = "timeseries"
+        elif "rates" in data and isinstance(data["rates"], dict):
+            container_key = "rates"
+
+        if container_key:
+            for d_str, prices in data[container_key].items():
+                if isinstance(prices, dict) and SYMBOL in prices:
                     rows.append({"Date": pd.to_datetime(d_str), "Value": prices[SYMBOL]})
+
             if "quota" in data:
                 log(f"ℹ️ API quota used: {data['quota'].get('used','N/A')}, remaining: {data['quota'].get('remaining','N/A')}")
+
+            if not rows:
+                log(f"⚠️ No values returned in '{container_key}' for {start_date} → {end_date}.")
             return pd.DataFrame(rows)
+
         else:
-            log(f"❌ Unexpected API response: {data}")
+            log(f"⚠️ No data found for {start_date} → {end_date}. Response keys: {list(data.keys())}")
             return pd.DataFrame(columns=["Date", "Value"])
+
     except Exception as e:
         log(f"❌ Error fetching timeseries: {e}")
         return pd.DataFrame(columns=["Date", "Value"])
@@ -163,3 +179,4 @@ if __name__ == "__main__":
     except Exception as e:
         log(f"🔥 Fatal error during ETL: {e}")
         raise
+        
