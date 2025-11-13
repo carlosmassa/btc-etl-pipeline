@@ -1,0 +1,40 @@
+name: Daily LBMA Gold PM Prices
+on:
+  schedule:
+    - cron: "0 22 * * *"  # Run at 22:00 UTC daily, ~4 hours after London PM fix and before the 4 AM UTC main ETL
+  workflow_dispatch:
+
+jobs:
+  gold_update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run LBMA Gold PM USD incremental ETL
+        env:
+          METALS_DEV_API_KEY: ${{ secrets.METALS_DEV_API_KEY }}
+        run: python scripts/update_gold_price_MetalsDev.py
+
+      - name: Commit updated CSV
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email actions@github.com
+          git add data/LBMA-gold_D-gold_D_USD_PM.csv
+          git commit -m "Auto-update LBMA Gold PM prices for $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
+          git push
