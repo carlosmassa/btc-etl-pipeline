@@ -100,6 +100,11 @@ def fetch_timeseries(start_date: date, end_date: date) -> pd.DataFrame:
 def main():
     log("🚀 Starting LBMA Gold PM USD ETL process...")
 
+    if not API_KEY:
+        raise ValueError("❌ METALS_DEV_API_KEY environment variable not found. Set it before running.")
+    else:
+        log("🔑 METALS_DEV_API_KEY loaded successfully (length: %d chars)" % len(API_KEY))
+
     df_existing = load_existing_csv()
 
     # --- Determine last valid date ---
