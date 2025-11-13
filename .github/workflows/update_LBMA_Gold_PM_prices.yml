@@ -1,4 +1,4 @@
-name: Daily LBMA Gold PM Prices
+name: Daily LBMA Gold PM Prices (metals.dev)
 on:
   schedule:
     - cron: "0 22 * * *"  # Run at 22:00 UTC daily, ~4 hours after London PM fix and before the 4 AM UTC main ETL
