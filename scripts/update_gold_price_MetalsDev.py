@@ -39,7 +39,7 @@ def load_existing_csv() -> pd.DataFrame:
     return df
 
 def fetch_timeseries(start_date: date, end_date: date) -> pd.DataFrame:
-    """Fetch timeseries data from Metals.Dev API."""
+    """Fetch timeseries data from Metals.Dev API safely."""
     url = (
         f"https://api.metals.dev/v1/timeseries"
         f"?api_key={API_KEY}"
@@ -50,14 +50,20 @@ def fetch_timeseries(start_date: date, end_date: date) -> pd.DataFrame:
     try:
         resp = requests.get(url)
         data = resp.json()
+
+        if not data.get("rates"):
+            log(f"⚠️ No rates returned from API for {start_date} → {end_date}.")
+            return pd.DataFrame(columns=["Date", "Value"])
+
         rows = []
-        if "rates" in data:
-            for d_str, day_data in data["rates"].items():
-                if "metals" in day_data and "gold" in day_data["metals"]:
-                    rows.append({"Date": pd.to_datetime(d_str), "Value": day_data["metals"]["gold"]})
+        for d_str, day_data in data["rates"].items():
+            if "metals" in day_data and "gold" in day_data["metals"]:
+                rows.append({"Date": pd.to_datetime(d_str), "Value": day_data["metals"]["gold"]})
+
         if not rows:
-            log(f"⚠️ No values returned for {start_date} → {end_date}")
+            log(f"⚠️ No gold values returned for {start_date} → {end_date}")
         return pd.DataFrame(rows)
+
     except Exception as e:
         log(f"❌ Error fetching timeseries: {e}")
         return pd.DataFrame(columns=["Date", "Value"])
@@ -66,13 +72,16 @@ def main():
     log("🚀 Starting LBMA Gold PM USD ETL process...")
 
     df_existing = load_existing_csv()
-    # === TEMP: Fill weekends in historical CSV ===
-    df_existing["Date"] = pd.to_datetime(df_existing["Date"])
-    full_dates = pd.date_range(start=df_existing["Date"].min(), end=df_existing["Date"].max(), freq="D")
-    df_existing = df_existing.set_index("Date").reindex(full_dates).rename_axis("Date").reset_index()
-    df_existing["Value"] = df_existing["Value"].ffill()
-    log(f"✅ Weekends filled by carrying forward last Friday's value. Total rows now: {len(df_existing)}")
-    #=======================================
+
+    # === TEMP: Fill weekends in historical CSV (one-time) ===
+    if not df_existing.empty:
+        full_dates = pd.date_range(start=df_existing["Date"].min(), end=df_existing["Date"].max(), freq="D")
+        df_full = pd.DataFrame({"Date": full_dates})
+        df_full = df_full.merge(df_existing, on="Date", how="left")
+        df_full["Value"] = df_full["Value"].ffill()
+        df_existing = df_full
+        log(f"✅ Weekends filled by carrying forward last Friday's value. Total rows now: {len(df_existing)}")
+    # =======================================
 
     last_date = df_existing["Date"].max().date() if not df_existing.empty else date.today() - timedelta(days=1)
     today = date.today()
@@ -83,6 +92,7 @@ def main():
 
     log(f"📅 Fetching missing dates: {last_date + timedelta(days=1)} → {today}")
     df_new = fetch_timeseries(last_date + timedelta(days=1), today)
+
     if df_new.empty:
         log("ℹ️ No new data fetched. CSV remains unchanged.")
         return
