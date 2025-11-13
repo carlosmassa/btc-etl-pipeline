@@ -39,7 +39,7 @@ def load_existing_csv() -> pd.DataFrame:
     return df
 
 def fetch_timeseries(start_date: date, end_date: date) -> pd.DataFrame:
-    """Fetch timeseries data from Metals.Dev API safely."""
+    """Fetch timeseries data from Metals.Dev API."""
     url = (
         f"https://api.metals.dev/v1/timeseries"
         f"?api_key={API_KEY}"
@@ -50,40 +50,44 @@ def fetch_timeseries(start_date: date, end_date: date) -> pd.DataFrame:
     try:
         resp = requests.get(url)
         data = resp.json()
-
-        if not data.get("rates"):
-            log(f"⚠️ No rates returned from API for {start_date} → {end_date}.")
-            return pd.DataFrame(columns=["Date", "Value"])
-
         rows = []
-        for d_str, day_data in data["rates"].items():
-            if "metals" in day_data and "gold" in day_data["metals"]:
-                rows.append({"Date": pd.to_datetime(d_str), "Value": day_data["metals"]["gold"]})
-
+        if data.get("rates"):
+            for d_str, day_data in data["rates"].items():
+                if "metals" in day_data and "gold" in day_data["metals"]:
+                    rows.append({"Date": pd.to_datetime(d_str), "Value": day_data["metals"]["gold"]})
         if not rows:
-            log(f"⚠️ No gold values returned for {start_date} → {end_date}")
+            log(f"⚠️ No values returned for {start_date} → {end_date}.")
         return pd.DataFrame(rows)
-
     except Exception as e:
         log(f"❌ Error fetching timeseries: {e}")
         return pd.DataFrame(columns=["Date", "Value"])
 
+def fill_weekends(df: pd.DataFrame) -> pd.DataFrame:
+    """Fill Saturdays and Sundays by carrying forward the last Friday's value."""
+    full_dates = pd.date_range(start=df["Date"].min(), end=df["Date"].max(), freq="D")
+    df_full = pd.DataFrame({"Date": full_dates})
+    df_full = df_full.merge(df, on="Date", how="left")
+    df_full["Value"] = df_full["Value"].ffill()
+    log(f"✅ Weekends filled by carrying forward last Friday's value. Total rows now: {len(df_full)}")
+    return df_full
+
 def main():
     log("🚀 Starting LBMA Gold PM USD ETL process...")
 
+    # Load existing CSV
     df_existing = load_existing_csv()
 
-    # === TEMP: Fill weekends in historical CSV (one-time) ===
-    if not df_existing.empty:
-        full_dates = pd.date_range(start=df_existing["Date"].min(), end=df_existing["Date"].max(), freq="D")
-        df_full = pd.DataFrame({"Date": full_dates})
-        df_full = df_full.merge(df_existing, on="Date", how="left")
-        df_full["Value"] = df_full["Value"].ffill()
-        df_existing = df_full
-        log(f"✅ Weekends filled by carrying forward last Friday's value. Total rows now: {len(df_existing)}")
-    # =======================================
+    # Fill missing weekends
+    df_existing = fill_weekends(df_existing)
 
-    last_date = df_existing["Date"].max().date() if not df_existing.empty else date.today() - timedelta(days=1)
+    # Write CSV immediately (fix historical weekends)
+    df_existing["Value"] = df_existing["Value"].round(2)
+    df_existing["Date"] = df_existing["Date"].dt.strftime("%Y-%m-%d")
+    df_existing.to_csv(CSV_PATH, index=False)
+    log("💾 Historical CSV updated successfully with weekends filled.")
+
+    # Fetch new data from last date to today
+    last_date = pd.to_datetime(df_existing["Date"]).max().date()
     today = date.today()
 
     if last_date >= today:
@@ -92,17 +96,15 @@ def main():
 
     log(f"📅 Fetching missing dates: {last_date + timedelta(days=1)} → {today}")
     df_new = fetch_timeseries(last_date + timedelta(days=1), today)
-
     if df_new.empty:
-        log("ℹ️ No new data fetched. CSV remains unchanged.")
+        log("ℹ️ No new data fetched from API. CSV remains as-is.")
         return
 
-    df_updated = pd.concat([df_existing, df_new]).drop_duplicates(subset="Date").sort_values("Date")
+    df_updated = pd.concat([pd.to_datetime(df_existing.assign(Date=df_existing["Date"])), df_new]).drop_duplicates(subset="Date").sort_values("Date")
     df_updated["Value"] = df_updated["Value"].round(2)
     df_updated["Date"] = df_updated["Date"].dt.strftime("%Y-%m-%d")
     df_updated.to_csv(CSV_PATH, index=False)
-
-    log(f"💾 CSV updated successfully. Added {len(df_new)} new rows. Total rows: {len(df_updated)}")
+    log(f"💾 CSV updated successfully with new API data. Total rows: {len(df_updated)}")
     log(f"✅ Last date updated: {df_updated['Date'].iloc[-1]}")
     log("🎉 LBMA Gold PM USD ETL completed successfully.")
 
@@ -112,3 +114,4 @@ if __name__ == "__main__":
     except Exception as e:
         log(f"🔥 Fatal error during ETL: {e}")
         raise
+
