@@ -3,11 +3,15 @@ from datetime import datetime, date, timedelta
 from pathlib import Path
 import requests
 import math
+import os
 
 # === CONFIG ===
 CSV_PATH = Path("data/LBMA-gold_D-gold_D_USD_PM.csv")
 GITHUB_RAW_CSV = "https://raw.githubusercontent.com/carlosmassa/btc-etl-pipeline/main/data/LBMA-gold_D-gold_D_USD_PM.csv"
-API_KEY = "YOUR_METALS_DEV_API_KEY"
+# Load API key from environment variables
+API_KEY = os.getenv("METALS_DEV_API_KEY")
+if not API_KEY:
+    raise ValueError("❌ API key not found. Please set the METALS_DEV_API_KEY environment variable.")
 SYMBOL = "lbma_gold_pm"  # Metals.Dev symbol for LBMA Gold PM USD
 MAX_DAYS_PER_CALL = 30
 
