@@ -66,6 +66,13 @@ def main():
     log("🚀 Starting LBMA Gold PM USD ETL process...")
 
     df_existing = load_existing_csv()
+    # === TEMP: Fill weekends in historical CSV ===
+    full_dates = pd.date_range(start=df_existing["Date"].min(), end=df_existing["Date"].max(), freq="D")
+    df_full = pd.DataFrame({"Date": full_dates})
+    df_full = df_full.merge(df_existing, on="Date", how="left")
+    df_full["Value"] = df_full["Value"].ffill()
+    df_existing = df_full
+    #=======================================
     last_date = df_existing["Date"].max().date() if not df_existing.empty else date.today() - timedelta(days=1)
     today = date.today()
 
