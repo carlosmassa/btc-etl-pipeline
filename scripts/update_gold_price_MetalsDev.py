@@ -73,7 +73,7 @@ def fetch_timeseries(start_date: date, end_date: date) -> pd.DataFrame:
     """Fetch timeseries data from Metals.Dev API."""
     url = (
         f"https://api.metals.dev/v1/timeseries"
-        f"?access_key={API_KEY}"
+        f"?api_key={API_KEY}"
         f"&symbols={SYMBOL}"
         f"&start_date={start_date.isoformat()}"
         f"&end_date={end_date.isoformat()}"
