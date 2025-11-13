@@ -67,12 +67,13 @@ def main():
 
     df_existing = load_existing_csv()
     # === TEMP: Fill weekends in historical CSV ===
+    df_existing["Date"] = pd.to_datetime(df_existing["Date"])
     full_dates = pd.date_range(start=df_existing["Date"].min(), end=df_existing["Date"].max(), freq="D")
-    df_full = pd.DataFrame({"Date": full_dates})
-    df_full = df_full.merge(df_existing, on="Date", how="left")
-    df_full["Value"] = df_full["Value"].ffill()
-    df_existing = df_full
+    df_existing = df_existing.set_index("Date").reindex(full_dates).rename_axis("Date").reset_index()
+    df_existing["Value"] = df_existing["Value"].ffill()
+    log(f"✅ Weekends filled by carrying forward last Friday's value. Total rows now: {len(df_existing)}")
     #=======================================
+
     last_date = df_existing["Date"].max().date() if not df_existing.empty else date.today() - timedelta(days=1)
     today = date.today()
 
