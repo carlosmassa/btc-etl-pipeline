@@ -15,10 +15,13 @@ API_KEY = os.getenv("METALS_DEV_API_KEY")
 if not API_KEY:
     raise ValueError("❌ METALS_DEV_API_KEY environment variable not found. Set it before running.")
 
+
 def log(msg: str):
     print(f"[{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}] {msg}", flush=True)
 
+
 def load_existing_csv() -> pd.DataFrame:
+    """Load CSV from local path or GitHub raw URL, ensuring clean dates."""
     if CSV_PATH.exists():
         df = pd.read_csv(CSV_PATH, dtype={"Date": str, "Value": float})
         log(f"✅ Loaded local CSV with {len(df)} rows.")
@@ -30,9 +33,17 @@ def load_existing_csv() -> pd.DataFrame:
         except Exception as e:
             log(f"⚠️ Could not fetch CSV from GitHub: {e}")
             df = pd.DataFrame(columns=["Date", "Value"])
+
     if not df.empty:
+        # Convert to datetime and drop bad rows
         df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y", errors="coerce")
+        before_drop = len(df)
+        df = df.dropna(subset=["Date"])
+        dropped = before_drop - len(df)
+        if dropped > 0:
+            log(f"⚠️ Dropped {dropped} rows with invalid or missing dates.")
     return df
+
 
 def calculate_effective_pm_date(target_date: date) -> date:
     """Return the previous business day's PM fix date for a given target date."""
@@ -45,7 +56,9 @@ def calculate_effective_pm_date(target_date: date) -> date:
     else:  # Tue-Fri → previous day
         return target_date - timedelta(days=1)
 
+
 def generate_missing_dates(last_date: date, today: date, existing_dates: set):
+    """Generate all missing effective PM dates between last_date and today."""
     dates = []
     current = last_date + timedelta(days=1)
     while current <= today:
@@ -55,7 +68,9 @@ def generate_missing_dates(last_date: date, today: date, existing_dates: set):
         current += timedelta(days=1)
     return sorted(list(set(dates)))
 
+
 def fetch_timeseries(start_date: date, end_date: date) -> pd.DataFrame:
+    """Fetch timeseries data from Metals.Dev API."""
     url = (
         f"https://api.metals.dev/v1/timeseries"
         f"?access_key={API_KEY}"
@@ -81,12 +96,24 @@ def fetch_timeseries(start_date: date, end_date: date) -> pd.DataFrame:
         log(f"❌ Error fetching timeseries: {e}")
         return pd.DataFrame(columns=["Date", "Value"])
 
+
 def main():
     log("🚀 Starting LBMA Gold PM USD ETL process...")
 
     df_existing = load_existing_csv()
-    last_date = df_existing["Date"].max().date() if not df_existing.empty else date.today() - timedelta(days=1)
-    existing_effective_dates = set(df_existing["Date"].dt.date) if not df_existing.empty else set()
+
+    # --- Determine last valid date ---
+    if not df_existing.empty:
+        valid_dates = df_existing["Date"].dropna()
+        if valid_dates.empty:
+            last_date = date.today() - timedelta(days=1)
+            log("⚠️ All existing dates are NaT. Using yesterday as last_date.")
+        else:
+            last_date = valid_dates.max().date()
+    else:
+        last_date = date.today() - timedelta(days=1)
+
+    existing_effective_dates = set(df_existing["Date"].dropna().dt.date) if not df_existing.empty else set()
     today = date.today()
 
     missing_dates = generate_missing_dates(last_date, today, existing_effective_dates)
@@ -114,6 +141,7 @@ def main():
         log("ℹ️ No new data fetched. CSV remains unchanged.")
         return
 
+    # --- Merge, clean, and save ---
     df_updated = pd.concat([df_existing, df_new]).drop_duplicates(subset="Date").sort_values("Date")
     df_updated["Value"] = df_updated["Value"].round(2)
     df_updated["Date"] = df_updated["Date"].dt.strftime("%d/%m/%Y")
@@ -122,6 +150,7 @@ def main():
     log(f"💾 CSV updated successfully. Added {len(df_new)} new rows. Total rows: {len(df_updated)}")
     log(f"✅ Last date updated: {df_updated['Date'].iloc[-1]}")
     log("🎉 LBMA Gold PM USD ETL completed successfully.")
+
 
 if __name__ == "__main__":
     try:
