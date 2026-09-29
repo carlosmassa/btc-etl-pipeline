@@ -9,6 +9,7 @@ import statsmodels.api as sm
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 BTC_CSV = Path("data/BTC_Prices.csv")
+GOLD_CSV = Path("data/LBMA-gold_D-gold_D_USD_PM.csv")
 GENESIS = pd.Timestamp("2009-01-03")
 USEFUL_FROM = pd.Timestamp("2010-07-18")
 CHART_QUANTILES = [0.001, 0.05, 0.50, 0.90, 0.98, 0.999]
@@ -42,31 +43,56 @@ def _coef(fit) -> tuple[float, float]:
     return float(params[0]), float(params[1])
 
 
-def clean_btc(csv_path: Path = BTC_CSV) -> pd.DataFrame:
+def _load_price_csv(csv_path: Path, label: str) -> pd.DataFrame:
     if not csv_path.exists():
-        raise FileNotFoundError(f"BTC price file not found: {csv_path}")
-
+        raise FileNotFoundError(f"{label} file not found: {csv_path}")
     df = pd.read_csv(csv_path)
     if "Date" not in df.columns or "Value" not in df.columns:
         raise ValueError(f"{csv_path} must have Date and Value columns")
-
     df["Date"] = parse_price_dates(df["Date"])
     df["Value"] = pd.to_numeric(df["Value"], errors="coerce")
     df = df.dropna(subset=["Date", "Value"])
     df = df[df["Value"] > 0]
-    df = df[df["Date"] >= USEFUL_FROM]
-    df = df.drop_duplicates(subset="Date", keep="last").sort_values("Date").reset_index(drop=True)
+    df = df.drop_duplicates(subset="Date", keep="last").sort_values("Date")
+    return df.reset_index(drop=True)
+
+
+def _finalize_series(df: pd.DataFrame, label: str) -> pd.DataFrame:
+    df = df[df["Date"] >= USEFUL_FROM].copy()
     df["ind"] = (df["Date"] - GENESIS).dt.days
-    df = df[df["ind"] > 0].reset_index(drop=True)
-
+    df = df[df["ind"] > 0].sort_values("Date").reset_index(drop=True)
     if df.empty:
-        raise ValueError("No usable BTC rows after cleaning")
-
-    logging.info("Cleaned %s BTC rows (%s → %s)", len(df), df["Date"].min().date(), df["Date"].max().date())
+        raise ValueError(f"No usable {label} rows after cleaning")
+    logging.info("Cleaned %s %s rows (%s → %s)", len(df), label, df["Date"].min().date(), df["Date"].max().date())
     return df
 
 
-def fit_power_law(df: pd.DataFrame) -> dict:
+def clean_btc(csv_path: Path = BTC_CSV) -> pd.DataFrame:
+    return _finalize_series(_load_price_csv(csv_path, "BTC"), "BTC")
+
+
+def clean_gold(csv_path: Path = GOLD_CSV) -> pd.DataFrame:
+    gold = _load_price_csv(csv_path, "gold")
+    full = pd.DataFrame({"Date": pd.date_range(gold["Date"].min(), gold["Date"].max(), freq="D")})
+    gold = full.merge(gold, on="Date", how="left")
+    gold["Value"] = gold["Value"].ffill()
+    gold = gold.dropna(subset=["Value"])
+    return _finalize_series(gold, "gold")
+
+
+def clean_btc_gold_ratio() -> pd.DataFrame:
+    btc = _load_price_csv(BTC_CSV, "BTC")
+    gold = clean_gold()[["Date", "Value"]].rename(columns={"Value": "Gold"})
+    merged = btc.merge(gold, on="Date", how="left").sort_values("Date")
+    merged["Gold"] = merged["Gold"].ffill()
+    merged = merged.dropna(subset=["Value", "Gold"])
+    merged = merged[merged["Gold"] > 0]
+    merged["Value"] = merged["Value"] / merged["Gold"]
+    ratio = merged[["Date", "Value"]].copy()
+    return _finalize_series(ratio, "BTC/Gold ratio")
+
+
+def fit_power_law(df: pd.DataFrame, series_label: str = "series") -> dict:
     X = np.log(df["ind"].astype(float))
     y = np.log(df["Value"].astype(float))
     X_with_const = sm.add_constant(X)
@@ -75,7 +101,10 @@ def fit_power_law(df: pd.DataFrame) -> dict:
     for q in CHART_QUANTILES:
         fits[q] = sm.QuantReg(y, X_with_const).fit(q=q)
         intercept, slope = _coef(fits[q])
-        logging.info("Quantile %s: intercept=%.4f slope=%.4f prsquared=%.3f", QUANTILE_LABELS[q], intercept, slope, fits[q].prsquared)
+        logging.info(
+            "%s quantile %s: intercept=%.4f slope=%.4f prsquared=%.3f",
+            series_label, QUANTILE_LABELS[q], intercept, slope, fits[q].prsquared,
+        )
 
     work = df.copy()
     for q, label in QUANTILE_LABELS.items():
@@ -91,7 +120,6 @@ def fit_power_law(df: pd.DataFrame) -> dict:
         future[f"LinearReg_{label}"] = np.exp(future[f"QuantRegPredict_{label}"])
 
     combined = pd.concat([work, future], ignore_index=True)
-
     latest = work.iloc[-1]
     latest_price = float(latest["Value"])
     fair_value = float(latest["LinearReg_50%"])
@@ -99,9 +127,10 @@ def fit_power_law(df: pd.DataFrame) -> dict:
     price_quantile = estimate_price_quantile(y, X_with_const, latest_price)
 
     intercept, slope = _coef(fits[0.50])
-    logging.info("50%% equation: Price = exp(%.6f * ln(days since genesis) + %.6f)", slope, intercept)
+    logging.info("%s 50%% equation: Value = exp(%.6f * ln(days since genesis) + %.6f)", series_label, slope, intercept)
     logging.info(
-        "Latest price %.2f is %.2f%% %s 50%% fair value (q≈%s)",
+        "%s latest %.4f is %.2f%% %s 50%% fair value (q≈%s)",
+        series_label,
         latest_price,
         abs(percent_change),
         "above" if percent_change >= 0 else "below",
@@ -162,7 +191,24 @@ def estimate_price_quantile(
     return (lo + hi) / 2.0
 
 
-def render_chart(model: dict) -> tuple[Path, Path]:
+def _fmt(value: float, style: str) -> str:
+    if style == "usd":
+        return f"{value:,.0f}"
+    return f"{value:,.2f}"
+
+
+def render_chart(
+    model: dict,
+    *,
+    title: str,
+    yaxis_title: str,
+    series_name: str,
+    html_name: str,
+    jpg_name: str,
+    value_style: str = "usd",
+    fair_value_prefix: str = "$",
+    line_color: str = "orange",
+) -> tuple[Path, Path]:
     df = model["df"]
     combined = model["combined"]
     latest_date = model["latest_date"]
@@ -171,14 +217,13 @@ def render_chart(model: dict) -> tuple[Path, Path]:
     band = model["band"]
     price_quantile = model["price_quantile"]
 
-    is_above = percent_change >= 0
-    change_type = "above" if is_above else "below"
+    change_type = "above" if percent_change >= 0 else "below"
     n_points = f"{len(df):,.0f}"
     date_label = latest_date.strftime("%d %B %Y")
     q_label = f"{price_quantile * 100:.2f}%"
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df["Date"], y=df["Value"], mode="lines", name="Price", line=dict(color="orange", width=3)))
+    fig.add_trace(go.Scatter(x=df["Date"], y=df["Value"], mode="lines", name=series_name, line=dict(color=line_color, width=3)))
     fig.add_trace(go.Scatter(x=combined["Date"], y=combined["LinearReg_50%"], mode="lines", name="50% Quantile", line=dict(color="cyan", width=2)))
     fig.add_trace(go.Scatter(x=combined["Date"], y=combined["LinearReg_0.1%"], fill=None, mode="lines", line=dict(color="#A8D800", width=1), name="0.1% Quantile", showlegend=False))
     fig.add_trace(go.Scatter(x=combined["Date"], y=combined["LinearReg_5%"], fill="tonexty", mode="lines", line=dict(color="#00FF7F", width=0), name="5% Quantile", showlegend=False))
@@ -192,8 +237,8 @@ def render_chart(model: dict) -> tuple[Path, Path]:
             xanchor="center", yanchor="top",
             text=(
                 f"Chart Date: {date_label} ({n_points} Data Points)"
-                f"<br>Latest Price: {latest_price:,.0f} ({abs(percent_change):,.2f}% {change_type} Fair Value); {q_label} Quantile"
-                f"<br>Fair Value: ${band['q50']:,.0f} (50% Quantile)"
+                f"<br>Latest: {_fmt(latest_price, value_style)} ({abs(percent_change):,.2f}% {change_type} Fair Value); {q_label} Quantile"
+                f"<br>Fair Value: {fair_value_prefix}{_fmt(band['q50'], value_style)} (50% Quantile)"
             ),
             font=dict(family="Arial", size=12, color="rgb(150,150,150)"),
             align="left",
@@ -203,9 +248,9 @@ def render_chart(model: dict) -> tuple[Path, Path]:
             xref="paper", yref="paper", x=0.65, y=-0.05,
             xanchor="center", yanchor="top",
             text=(
-                f"98% to 99.9% Quantile ({band['q98']:,.0f} - {band['q999']:,.0f})"
-                f"<br>90% to 98% Quantile ({band['q90']:,.0f} - {band['q98']:,.0f})"
-                f"<br>0.1% to 5% Quantile ({band['q001']:,.0f} - {band['q05']:,.0f})"
+                f"98% to 99.9% Quantile ({_fmt(band['q98'], value_style)} - {_fmt(band['q999'], value_style)})"
+                f"<br>90% to 98% Quantile ({_fmt(band['q90'], value_style)} - {_fmt(band['q98'], value_style)})"
+                f"<br>0.1% to 5% Quantile ({_fmt(band['q001'], value_style)} - {_fmt(band['q05'], value_style)})"
             ),
             font=dict(family="Arial", size=12, color="rgb(150,150,150)"),
             align="left",
@@ -220,9 +265,9 @@ def render_chart(model: dict) -> tuple[Path, Path]:
     ]
 
     fig.update_layout(
-        title="Power Law Probability Channel",
+        title=title,
         xaxis_title="Date",
-        yaxis_title="Price (USD)",
+        yaxis_title=yaxis_title,
         yaxis_type="log",
         hovermode="closest",
         annotations=annotations,
@@ -240,18 +285,73 @@ def render_chart(model: dict) -> tuple[Path, Path]:
     }
 
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
-    html_path = CHARTS_DIR / "btc_usd_chart.html"
-    jpg_path = CHARTS_DIR / "btc_usd_chart.jpg"
+    html_path = CHARTS_DIR / html_name
+    jpg_path = CHARTS_DIR / jpg_name
     fig.write_html(str(html_path), auto_open=False, config=config)
     fig.write_image(str(jpg_path), width=1600, height=900, scale=2)
     logging.info("Wrote %s and %s", html_path, jpg_path)
     return html_path, jpg_path
 
 
+def write_chart_index() -> Path:
+    CHARTS_DIR.mkdir(parents=True, exist_ok=True)
+    index_path = CHARTS_DIR / "index.html"
+    index_path.write_text(
+        """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BTC Power Law Charts</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #111; color: #eee; max-width: 720px; margin: 3rem auto; padding: 0 1rem; }
+    a { color: #7dd3fc; }
+    li { margin: 0.6rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Power Law Probability Channels</h1>
+  <ul>
+    <li><a href="btc_usd_chart.html">BTC/USD</a></li>
+    <li><a href="btc_gold_ratio_chart.html">BTCUSD / GOLD</a></li>
+  </ul>
+</body>
+</html>
+""",
+        encoding="utf-8",
+    )
+    logging.info("Wrote %s", index_path)
+    return index_path
+
+
 def transform_data() -> None:
-    df = clean_btc()
-    model = fit_power_law(df)
-    render_chart(model)
+    btc = clean_btc()
+    btc_model = fit_power_law(btc, series_label="BTC/USD")
+    render_chart(
+        btc_model,
+        title="Power Law Probability Channel",
+        yaxis_title="Price (USD)",
+        series_name="Price",
+        html_name="btc_usd_chart.html",
+        jpg_name="btc_usd_chart.jpg",
+        value_style="usd",
+        fair_value_prefix="$",
+        line_color="orange",
+    )
+
+    ratio = clean_btc_gold_ratio()
+    ratio_model = fit_power_law(ratio, series_label="BTC/Gold")
+    render_chart(
+        ratio_model,
+        title="BTCUSD / GOLD Power Law Probability Channel",
+        yaxis_title="Ounces of gold per BTC",
+        series_name="BTC/Gold",
+        html_name="btc_gold_ratio_chart.html",
+        jpg_name="btc_gold_ratio_chart.jpg",
+        value_style="ratio",
+        fair_value_prefix="",
+        line_color="#FFD700",
+    )
+    write_chart_index()
 
 
 if __name__ == "__main__":
