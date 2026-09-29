@@ -19,7 +19,7 @@ Live chart: https://carlosmassa.github.io/btc-etl-pipeline/charts/btc_usd_chart.
 5. Wait for the job. Logs should say `MODE=dry-run`.
 6. Download the **pipeline-output** artifact (JPG + HTML) and compare it with the live chart.
 
-That run cannot post to X and cannot change gh-pages.
+That run cannot post to X and cannot change gh-pages. It also does not need `extract.py`; the chart is built from `data/BTC_Prices.csv`.
 
 ## Promote to production
 
@@ -29,4 +29,4 @@ When the artifact looks right:
 2. Merge
 3. The next scheduled job on `main` (04:00 UTC) uses the new code and publishes as usual
 
-If you ever need an immediate production publish after merge: run the same workflow on **main** and check **publish_to_production**.
+If you need an immediate production publish after merge: run the same workflow on **main** and check **publish_to_production**.
