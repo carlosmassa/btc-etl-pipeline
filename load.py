@@ -1,29 +1,24 @@
 import logging
-import shutil
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 CHARTS_DIR = Path("charts")
-HTML_NAME = "btc_usd_chart.html"
-JPG_NAME = "btc_usd_chart.jpg"
+REQUIRED = [
+    "btc_usd_chart.html",
+    "btc_usd_chart.jpg",
+    "btc_gold_ratio_chart.html",
+    "btc_gold_ratio_chart.jpg",
+    "index.html",
+]
 
 
 def load_data() -> None:
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
-    dest_html = CHARTS_DIR / HTML_NAME
-    dest_jpg = CHARTS_DIR / JPG_NAME
-
-    root_html = Path(HTML_NAME)
-    if root_html.exists() and root_html.resolve() != dest_html.resolve():
-        shutil.copy2(root_html, dest_html)
-        logging.info("Copied %s → %s", root_html, dest_html)
-
-    missing = [str(p) for p in (dest_html, dest_jpg) if not p.exists()]
+    missing = [str(CHARTS_DIR / name) for name in REQUIRED if not (CHARTS_DIR / name).exists()]
     if missing:
         raise FileNotFoundError(f"Expected chart files missing: {', '.join(missing)}")
-
-    logging.info("Chart artifacts ready: %s, %s", dest_html, dest_jpg)
+    logging.info("Chart artifacts ready in %s: %s", CHARTS_DIR, ", ".join(REQUIRED))
 
 
 if __name__ == "__main__":

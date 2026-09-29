@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_to_production:
-        description: "Also post to X and update the live gh-pages chart (main branch only)"
+        description: "Also post to X and update the live gh-pages charts (main branch only)"
         type: boolean
         default: false
 
@@ -48,7 +48,7 @@ jobs:
       - name: Load data
         run: python load.py
 
-      - name: Post chart to X
+      - name: Post charts to X
         if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || inputs.publish_to_production == true)
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
@@ -65,10 +65,13 @@ jobs:
           path: |
             charts/btc_usd_chart.jpg
             charts/btc_usd_chart.html
+            charts/btc_gold_ratio_chart.jpg
+            charts/btc_gold_ratio_chart.html
+            charts/index.html
           if-no-files-found: error
           retention-days: 7
 
-      - name: Commit chart to gh-pages branch
+      - name: Commit charts to gh-pages branch
         if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || inputs.publish_to_production == true)
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -76,8 +79,9 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           mkdir -p temp
-          mv charts/btc_usd_chart.html temp/
-          mv charts/btc_usd_chart.jpg temp/
+          mv charts/btc_usd_chart.html charts/btc_usd_chart.jpg temp/
+          mv charts/btc_gold_ratio_chart.html charts/btc_gold_ratio_chart.jpg temp/
+          mv charts/index.html temp/
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             git fetch origin gh-pages
             git checkout gh-pages
@@ -86,8 +90,9 @@ jobs:
             git rm -rf .
           fi
           mkdir -p charts
-          mv temp/btc_usd_chart.html charts/
-          mv temp/btc_usd_chart.jpg charts/
-          git add charts/btc_usd_chart.html charts/btc_usd_chart.jpg
-          git commit -m "Update BTC/USD chart and JPG for $(date +%Y-%m-%d)" || echo "No changes to commit"
+          mv temp/* charts/
+          git add charts/btc_usd_chart.html charts/btc_usd_chart.jpg \
+                  charts/btc_gold_ratio_chart.html charts/btc_gold_ratio_chart.jpg \
+                  charts/index.html
+          git commit -m "Update BTC and BTC/Gold charts for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
