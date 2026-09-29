@@ -23,6 +23,26 @@ QUANTILE_LABELS = {
 }
 FUTURE_DAYS = 5 * 365
 CHARTS_DIR = Path("charts")
+FORECAST_HORIZONS = [
+    ("Today", 0),
+    ("3 mo", 91),
+    ("6 mo", 182),
+    ("1 yr", 365),
+    ("2 yr", 730),
+    ("3 yr", 1095),
+    ("4 yr", 1461),
+    ("5 yr", 1825),
+]
+TABLE_ROW_COLORS = {
+    "99.9%": "#B33A12",
+    "98%": "#3E6F8C",
+    "90%": "#0B6E94",
+    "50%": "#0C6C78",
+    "5%": "#1A7A45",
+    "0.1%": "#5A7A10",
+}
+TABLE_HEADER_COLOR = "#2A2A2A"
+TABLE_LABEL_COLOR = "#1C1C1C"
 
 
 def parse_price_dates(series: pd.Series) -> pd.Series:
@@ -191,6 +211,73 @@ def estimate_price_quantile(
     return (lo + hi) / 2.0
 
 
+def _predict_price(fit, days_since_genesis: float) -> float:
+    x = sm.add_constant(np.log(np.array([float(days_since_genesis)])), has_constant="add")
+    pred = fit.predict(x)
+    value = float(pred.iloc[0] if hasattr(pred, "iloc") else pred[0])
+    return float(np.exp(value))
+
+
+def _table_cell(value: float, value_style: str) -> str:
+    if value_style == "usd":
+        return f"{value / 1000:,.0f}"
+    return f"{value:,.2f}"
+
+
+def forecast_table_values(model: dict, value_style: str = "usd") -> tuple[list[str], list[list[str]], list[list[str]]]:
+    """Return header, cell columns, and matching fill colours for a Plotly table."""
+    latest_date = model["latest_date"]
+    fits = model["fits"]
+    unit = "$k" if value_style == "usd" else "oz"
+    header = [unit] + [name for name, _ in FORECAST_HORIZONS]
+
+    row_labels = []
+    row_prices = []
+    row_colors = []
+    for q in reversed(CHART_QUANTILES):
+        label = QUANTILE_LABELS[q]
+        prices = []
+        for _, offset in FORECAST_HORIZONS:
+            target = latest_date + pd.Timedelta(days=offset)
+            days = (target - GENESIS).days
+            prices.append(_predict_price(fits[q], days))
+        row_labels.append(label)
+        row_prices.append(prices)
+        row_colors.append(TABLE_ROW_COLORS[label])
+
+    columns = [row_labels]
+    fills = [[TABLE_LABEL_COLOR] * len(row_labels)]
+    for col_idx in range(len(FORECAST_HORIZONS)):
+        columns.append([_table_cell(row_prices[r][col_idx], value_style) for r in range(len(row_labels))])
+        fills.append(row_colors)
+    return header, columns, fills
+
+
+def add_forecast_table(fig: go.Figure, model: dict, value_style: str = "usd") -> None:
+    header, columns, fills = forecast_table_values(model, value_style=value_style)
+    fig.add_trace(
+        go.Table(
+            header=dict(
+                values=header,
+                fill_color=TABLE_HEADER_COLOR,
+                font=dict(family="Arial", color="white", size=11),
+                align="center",
+                line=dict(color="#111111", width=1),
+                height=24,
+            ),
+            cells=dict(
+                values=columns,
+                fill_color=fills,
+                font=dict(family="Arial", color="white", size=11),
+                align="center",
+                line=dict(color="#111111", width=1),
+                height=22,
+            ),
+            domain=dict(x=[0.55, 0.995], y=[0.02, 0.38]),
+        )
+    )
+
+
 def _fmt(value: float, style: str) -> str:
     if style == "usd":
         return f"{value:,.0f}"
@@ -208,6 +295,7 @@ def render_chart(
     value_style: str = "usd",
     fair_value_prefix: str = "$",
     line_color: str = "orange",
+    show_forecast_table: bool = False,
 ) -> tuple[Path, Path]:
     df = model["df"]
     combined = model["combined"]
@@ -284,6 +372,9 @@ def render_chart(
         ]
     }
 
+    if show_forecast_table:
+        add_forecast_table(fig, model, value_style=value_style)
+
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
     html_path = CHARTS_DIR / html_name
     jpg_path = CHARTS_DIR / jpg_name
@@ -336,6 +427,7 @@ def transform_data() -> None:
         value_style="usd",
         fair_value_prefix="$",
         line_color="orange",
+        show_forecast_table=True,
     )
 
     ratio = clean_btc_gold_ratio()
@@ -350,6 +442,7 @@ def transform_data() -> None:
         value_style="ratio",
         fair_value_prefix="",
         line_color="#FFD700",
+        show_forecast_table=True,
     )
     write_chart_index()
 
