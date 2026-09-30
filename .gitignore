@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+.DS_Store
+raw_*.csv
+transformed_*.csv
+btc_usd_chart.html
+charts/*.jpg
+.idea/
+.vscode/

@@ -1,59 +1,93 @@
 name: Daily BTC/USD ETL Pipeline
 on:
   schedule:
-    - cron: "0 4 * * *" # Runs daily at 4:00 AM UTC
-  workflow_dispatch: # Allows manual triggering
+    - cron: "0 4 * * *" # Runs daily at 4:00 AM UTC (default branch only)
+  workflow_dispatch:
+    inputs:
+      publish_to_production:
+        description: "Also post to X and update the live gh-pages charts (main branch only)"
+        type: boolean
+        default: false
+
 jobs:
   etl:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: main
-          fetch-depth: 0 # Full history to ensure latest commit
-      - name: List files in the root directory
-        run: ls -l
+          fetch-depth: 0
+
+      - name: Describe run mode
+        run: |
+          echo "ref=${GITHUB_REF}"
+          echo "event=${GITHUB_EVENT_NAME}"
+          echo "publish_to_production=${{ inputs.publish_to_production }}"
+          if [ "${GITHUB_REF}" = "refs/heads/main" ] && { [ "${GITHUB_EVENT_NAME}" = "schedule" ] || [ "${{ inputs.publish_to_production }}" = "true" ]; }; then
+            echo "MODE=production (X + gh-pages)"
+          else
+            echo "MODE=dry-run (artifacts only; no X post, no gh-pages update)"
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+          cache: pip
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Extract data
-        run: python extract.py
+
       - name: Transform data
-        run: python transform.py
+        run: python run_pipeline.py
+
       - name: Load data
         run: python load.py
-      - name: Post chart to X
+
+      - name: Post charts to X
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || inputs.publish_to_production == true)
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
-        run: python post_to_x.py || true
-      - name: Upload raw data and JPG artifact
+        run: python post_to_x.py
+
+      - name: Upload chart artifacts
         uses: actions/upload-artifact@v4
         with:
           name: pipeline-output
           path: |
-            raw_btc_usd.csv
             charts/btc_usd_chart.jpg
-          retention-days: 1
-      - name: Commit chart to gh-pages branch
+            charts/btc_usd_chart.html
+            charts/btc_gold_ratio_chart.jpg
+            charts/btc_gold_ratio_chart.html
+            charts/btc_usd_stability.jpg
+            charts/btc_usd_stability.html
+            charts/btc_gold_ratio_stability.jpg
+            charts/btc_gold_ratio_stability.html
+            charts/index.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit charts to gh-pages branch
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || inputs.publish_to_production == true)
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          ls -la charts/ # Debug: List files
           mkdir -p temp
-          mv charts/btc_usd_chart.html temp/ || true
-          mv charts/btc_usd_chart.jpg temp/ || true
+          mv charts/btc_usd_chart.html charts/btc_usd_chart.jpg temp/
+          mv charts/btc_gold_ratio_chart.html charts/btc_gold_ratio_chart.jpg temp/
+          mv charts/btc_usd_stability.html charts/btc_usd_stability.jpg temp/
+          mv charts/btc_gold_ratio_stability.html charts/btc_gold_ratio_stability.jpg temp/
+          mv charts/index.html temp/
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             git fetch origin gh-pages
             git checkout gh-pages
@@ -62,11 +96,11 @@ jobs:
             git rm -rf .
           fi
           mkdir -p charts
-          mv temp/btc_usd_chart.html charts/ || true
-          mv temp/btc_usd_chart.jpg charts/ || true
-          ls -la charts/ # Debug: List files after move
-          git add charts/btc_usd_chart.html charts/btc_usd_chart.jpg
-          git commit -m "Update BTC/USD chart and JPG for $(date +%Y-%m-%d)" || echo "No changes to commit"
+          mv temp/* charts/
+          git add charts/btc_usd_chart.html charts/btc_usd_chart.jpg \
+                  charts/btc_gold_ratio_chart.html charts/btc_gold_ratio_chart.jpg \
+                  charts/btc_usd_stability.html charts/btc_usd_stability.jpg \
+                  charts/btc_gold_ratio_stability.html charts/btc_gold_ratio_stability.jpg \
+                  charts/index.html
+          git commit -m "Update BTC and BTC/Gold charts for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
-
-

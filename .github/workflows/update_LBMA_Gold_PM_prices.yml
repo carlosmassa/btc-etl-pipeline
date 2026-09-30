@@ -2,31 +2,25 @@ name: Daily LBMA Gold PM Prices (metals.dev)
 
 on:
   schedule:
-    - cron: "0 22 * * *"  # Run at 22:00 UTC daily
+    - cron: "0 22 * * *"  # 22:00 UTC daily (default branch only)
   workflow_dispatch:
 
 jobs:
   gold_update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: main
           fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-
-      - name: Cache pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          cache: pip
 
       - name: Install dependencies
         run: |
