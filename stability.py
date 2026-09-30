@@ -50,7 +50,7 @@ def inject_extrema_table(html_path, rows):
     snippet = f"""
 <style>
   .plotly-graph-div {{ position: relative; }}
-  #extrema-footer {{ position: absolute; right: 18px; bottom: 20%; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }}
+  #extrema-footer {{ position: absolute; right: 96px; bottom: 20%; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }}
   #extrema-table {{ border-collapse: collapse; font: 13px Arial, sans-serif; color: #fff; }}
   #extrema-table th, #extrema-table td {{ padding: 6px 10px; text-align: center; border: 1px solid #111; background: #1C1C1C; }}
   #extrema-table th {{ background: #2A2A2A; font-weight: normal; }}
@@ -96,7 +96,7 @@ def render_stability_chart(stability, *, title, html_name, jpg_name, series_labe
     fig.layout.annotations = (dict(x=1, y=-0.12, xref="paper", yref="paper", xanchor="right", yanchor="auto", text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>', showarrow=False),)
     extrema = _extrema_rows(stability) if show_extrema_table else []
     if show_extrema_table:
-        fig.add_trace(go.Table(header=dict(values=["", "Max", "Date", "Min", "Date"], fill_color="#2A2A2A", font=dict(family="Arial", color="white", size=11), align="center", height=24), cells=dict(values=list(map(list, zip(*extrema))), fill_color="#1C1C1C", font=dict(family="Arial", color="white", size=11), align="center", height=22), domain=dict(x=[0.70, 0.995], y=[0.06, 0.20])))
+        fig.add_trace(go.Table(header=dict(values=["", "Max", "Date", "Min", "Date"], fill_color="#2A2A2A", font=dict(family="Arial", color="white", size=11), align="center", height=24), cells=dict(values=list(map(list, zip(*extrema))), fill_color="#1C1C1C", font=dict(family="Arial", color="white", size=11), align="center", height=22), domain=dict(x=[0.62, 0.88], y=[0.06, 0.20])))
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
     html_path = CHARTS_DIR / html_name
     jpg_path = CHARTS_DIR / jpg_name
