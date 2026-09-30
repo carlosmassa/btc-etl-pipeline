@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BTC Power Law Charts</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #14181e;
+      --panel-2: #1b2129;
+      --line: #2a323c;
+      --text: #e8edf2;
+      --muted: #9aa6b2;
+      --orange: #f5a24a;
+      --gold: #e0c36a;
+      --cyan: #7dd3fc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, rgba(245,162,74,0.12), transparent 50%),
+        radial-gradient(900px 400px at 100% 0%, rgba(224,195,106,0.10), transparent 45%),
+        var(--bg);
+      color: var(--text);
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 3.2rem 1.4rem 4rem; }
+    .hero { margin-bottom: 2.4rem; }
+    .kicker {
+      letter-spacing: 0.16em; text-transform: uppercase; font-size: 0.72rem;
+      color: var(--orange); margin: 0 0 0.6rem;
+    }
+    h1 { margin: 0 0 0.6rem; font-size: 2.1rem; font-weight: 700; }
+    .lede { margin: 0; max-width: 46rem; color: var(--muted); line-height: 1.55; }
+    h2 {
+      margin: 2.2rem 0 0.9rem; font-size: 0.82rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .card {
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1.15rem 1.2rem 1.2rem;
+      min-height: 168px;
+      display: flex; flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.btc { border-top: 3px solid var(--orange); }
+    .card.gold { border-top: 3px solid var(--gold); }
+    .card h3 { margin: 0 0 0.45rem; font-size: 1.12rem; }
+    .card p { margin: 0 0 1rem; color: var(--muted); font-size: 0.92rem; line-height: 1.45; flex: 1; }
+    .links { display: flex; gap: 0.55rem; }
+    .btn {
+      text-decoration: none; color: #0b0d10; background: var(--cyan);
+      padding: 0.45rem 0.75rem; border-radius: 999px; font-size: 0.85rem; font-weight: 700;
+    }
+    .btn.ghost {
+      background: transparent; color: var(--text); border: 1px solid var(--line);
+    }
+    .card.btc .btn { background: var(--orange); }
+    .card.gold .btn { background: var(--gold); }
+    .card .btn.ghost { background: transparent; color: var(--text); }
+    footer { margin-top: 2.4rem; color: var(--muted); font-size: 0.82rem; }
+    footer a { color: var(--text); }
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+      h1 { font-size: 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <p class="kicker">Daily research charts</p>
+      <h1>BTC Power Law Charts</h1>
+      <p class="lede">Daily power-law views of Bitcoin: quantile channels in dollars and in gold, plus the slope and fit-quality series that show how stable those laws have been over time.</p>
+    </header>
+
+    <h2>Probability channels</h2>
+    <div class="grid">
+      <article class="card btc">
+        <h3>BTCUSD</h3>
+        <p>Log-log quantile power-law channel for Bitcoin in dollars, with the forward projection table.</p>
+        <div class="links">
+          <a class="btn" href="btc_usd_chart.html">Open HTML</a>
+          <a class="btn ghost" href="btc_usd_chart.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card gold">
+        <h3>BTC/GOLD</h3>
+        <p>Same channel for ounces of gold per bitcoin, with the ratio projection table.</p>
+        <div class="links">
+          <a class="btn" href="btc_gold_ratio_chart.html">Open HTML</a>
+          <a class="btn ghost" href="btc_gold_ratio_chart.jpg">JPG</a>
+        </div>
+      </article>
+    </div>
+
+    <h2>Stabilization — b and r²</h2>
+    <div class="grid">
+      <article class="card btc">
+        <h3>BTCUSD stability</h3>
+        <p>Expanding-window slope and fit quality. Practical health check for the BTCUSD power law.</p>
+        <div class="links">
+          <a class="btn" href="btc_usd_stability.html">Open HTML</a>
+          <a class="btn ghost" href="btc_usd_stability.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card gold">
+        <h3>BTC/GOLD stability</h3>
+        <p>The same health check for the gold ratio, including max/min b and r².</p>
+        <div class="links">
+          <a class="btn" href="btc_gold_ratio_stability.html">Open HTML</a>
+          <a class="btn ghost" href="btc_gold_ratio_stability.jpg">JPG</a>
+        </div>
+      </article>
+    </div>
+
+    <footer>Chart by <a href="https://x.com/CarlesMassa">@CarlesMassa</a></footer>
+  </div>
+</body>
+</html>
