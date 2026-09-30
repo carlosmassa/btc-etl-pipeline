@@ -144,8 +144,8 @@ def render_nlb_basic(nlb):
     latest = nlb.iloc[-1]
     date_label = pd.Timestamp(latest["Date"]).strftime("%d %B %Y")
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=nlb["Date"], y=nlb["Value"], mode="lines", name="Price", line=dict(color=PRICE_COLOR, width=1.6), hovertemplate="Date=%{x|%Y-%m-%d}<br>Price=$%{y:,.0f}<extra></extra>"))
-    fig.add_trace(go.Scatter(x=nlb["Date"], y=nlb["nlb"], mode="lines", name="NLB floor", line=dict(color=NLB_COLOR, width=2.4), hovertemplate="Date=%{x|%Y-%m-%d}<br>NLB=$%{y:,.0f}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=nlb["Date"], y=nlb["Value"], mode="lines", name="Price", line=dict(color=PRICE_COLOR, width=1.6), hovertemplate="Date=%{x|%d %b %Y}<br>Price=$%{y:,.0f}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=nlb["Date"], y=nlb["nlb"], mode="lines", name="NLB floor", line=dict(color=NLB_COLOR, width=2.4), hovertemplate="Date=%{x|%d %b %Y}<br>NLB=$%{y:,.0f}<extra></extra>"))
     fig.update_yaxes(title_text="Price (USD)", type="log", showgrid=True, gridcolor="#333")
     fig.update_xaxes(title_text="Date", showgrid=True, gridcolor="#333")
     fig.update_layout(title=dict(text=f"BTCUSD Never Look Back Price<br><sup>{date_label}  ·  Price ${float(latest['Value']):,.0f}  ·  NLB ${float(latest['nlb']):,.0f}</sup>", x=0.5, xanchor="center"), template="plotly_dark", legend=dict(orientation="h", y=-0.16, x=0), hovermode="closest", margin=dict(t=80, b=110, l=70, r=40), annotations=[_credit()])
@@ -162,11 +162,13 @@ def render_nlb_regression(nlb):
     upper = np.exp(log_fit + 2 * model["rmse"])
     lower = np.exp(log_fit - 2 * model["rmse"])
     hist_fit = np.exp(model["intercept"] + model["slope"] * nlb["sqrt_days"].to_numpy())
+    hist_dates = nlb["Date"].dt.strftime("%d %b %Y").to_numpy()
+    all_dates = np.concatenate([hist_dates, pd.DatetimeIndex(future_dates).strftime("%d %b %Y").to_numpy()])
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=np.concatenate([nlb["sqrt_days"], future_sqrt]), y=np.concatenate([np.exp(np.log(hist_fit) + 2 * model["rmse"]), upper]), mode="lines", name="+2σ", line=dict(color="rgba(245,162,74,0.45)", width=1.4)))
-    fig.add_trace(go.Scatter(x=np.concatenate([nlb["sqrt_days"], future_sqrt]), y=np.concatenate([np.exp(np.log(hist_fit) - 2 * model["rmse"]), lower]), mode="lines", name="-2σ", line=dict(color="rgba(245,162,74,0.45)", width=1.4), fill="tonexty", fillcolor="rgba(245,162,74,0.10)"))
-    fig.add_trace(go.Scatter(x=np.concatenate([nlb["sqrt_days"], future_sqrt]), y=np.concatenate([hist_fit, fit]), mode="lines", name="Fit", line=dict(color=FIT_COLOR, width=2)))
-    fig.add_trace(go.Scatter(x=nlb["sqrt_days"], y=nlb["nlb"], mode="lines", name="NLB floor", line=dict(color=NLB_COLOR, width=2.4)))
+    fig.add_trace(go.Scatter(x=np.concatenate([nlb["sqrt_days"], future_sqrt]), y=np.concatenate([np.exp(np.log(hist_fit) + 2 * model["rmse"]), upper]), mode="lines", name="+2σ", line=dict(color="rgba(245,162,74,0.45)", width=1.4), customdata=all_dates, hovertemplate="Date=%{customdata}<br>+2σ=$%{y:,.0f}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=np.concatenate([nlb["sqrt_days"], future_sqrt]), y=np.concatenate([np.exp(np.log(hist_fit) - 2 * model["rmse"]), lower]), mode="lines", name="-2σ", line=dict(color="rgba(245,162,74,0.45)", width=1.4), fill="tonexty", fillcolor="rgba(245,162,74,0.10)", customdata=all_dates, hovertemplate="Date=%{customdata}<br>-2σ=$%{y:,.0f}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=np.concatenate([nlb["sqrt_days"], future_sqrt]), y=np.concatenate([hist_fit, fit]), mode="lines", name="Fit", line=dict(color=FIT_COLOR, width=2), customdata=all_dates, hovertemplate="Date=%{customdata}<br>Fit=$%{y:,.0f}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=nlb["sqrt_days"], y=nlb["nlb"], mode="lines", name="NLB floor", line=dict(color=NLB_COLOR, width=2.4), customdata=hist_dates, hovertemplate="Date=%{customdata}<br>NLB=$%{y:,.0f}<extra></extra>"))
     year_ticks, year_labels = [], []
     for year in range(model["first"].year, model["last"].year + 6):
         mark = max(pd.Timestamp(year=year, month=1, day=1), model["first"])
