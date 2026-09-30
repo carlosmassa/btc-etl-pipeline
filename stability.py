@@ -50,12 +50,11 @@ def inject_extrema_table(html_path, rows, series_label):
     snippet = f"""
 <style>
   .plotly-graph-div {{ position: relative; }}
-  #stability-caption {{ position: absolute; left: 64px; right: 16px; bottom: 8%; z-index: 20; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }}
-  #stability-note {{ background: rgba(28,28,28,0.94); border: 1px solid #555; border-radius: 4px; padding: 8px 12px; font: 12px Arial, sans-serif; color: #ddd; line-height: 1.45; }}
-  #stability-note b {{ color: #fff; }}
-  #stability-credit {{ font: 12px Arial, sans-serif; color: #ccc; white-space: nowrap; }}
-  #extrema-footer {{ position: absolute; right: 16px; bottom: 18%; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }}
-  #extrema-table {{ border-collapse: collapse; font: 13px Arial, sans-serif; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }}
+  #stability-note {{ position: absolute; left: 50%; bottom: 6.5%; transform: translateX(-50%); z-index: 20; text-align: center; background: none; border: none; padding: 0; font: 12px Arial, sans-serif; color: #b9b9b9; line-height: 1.4; }}
+  #stability-note b {{ color: #ddd; font-weight: bold; }}
+  #stability-credit {{ position: absolute; right: 16px; bottom: 6.5%; z-index: 20; font: 12px Arial, sans-serif; color: #ccc; white-space: nowrap; }}
+  #extrema-footer {{ position: absolute; right: 14%; bottom: 13%; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }}
+  #extrema-table {{ border-collapse: collapse; font: 13px Arial, sans-serif; color: #fff; }}
   #extrema-table th, #extrema-table td {{ padding: 6px 10px; text-align: center; border: 1px solid #111; background: #1C1C1C; }}
   #extrema-table th {{ background: #2A2A2A; font-weight: normal; }}
   #extrema-table td:first-child {{ background: #2A2A2A; font-weight: bold; }}
@@ -71,10 +70,14 @@ document.addEventListener("DOMContentLoaded", function () {{
   footer.id = "extrema-footer";
   footer.innerHTML = '<table id="extrema-table"><thead>{thead}</thead><tbody>{body}</tbody></table><button id="extrema-toggle">Hide table</button>';
   box.appendChild(footer);
-  const caption = document.createElement("div");
-  caption.id = "stability-caption";
-  caption.innerHTML = '<div id="stability-note"><b>Scale coefficient (b)</b> — how fast the {series_label} rises (y = a · x<sup>b</sup>)<br><b>r²</b> — share of the series explained by the power law</div><div id="stability-credit">Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color:#fff">@CarlesMassa</a></div>';
-  box.appendChild(caption);
+  const note = document.createElement("div");
+  note.id = "stability-note";
+  note.innerHTML = '<b>Scale coefficient (b)</b> — how fast the {series_label} rises (y = a · x<sup>b</sup>)<br><b>r²</b> — share of the series explained by the power law';
+  box.appendChild(note);
+  const credit = document.createElement("div");
+  credit.id = "stability-credit";
+  credit.innerHTML = 'Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color:#fff">@CarlesMassa</a>';
+  box.appendChild(credit);
   document.getElementById("extrema-toggle").addEventListener("click", function () {{
     const tbl = document.getElementById("extrema-table");
     const hidden = tbl.style.display === "none";
@@ -100,10 +103,10 @@ def render_stability_chart(stability, *, title, html_name, jpg_name, series_labe
     fig.update_yaxes(title_text="Scale Coefficient (b)", row=1, col=1, showgrid=True, gridcolor="#333")
     fig.update_yaxes(title_text="r²", row=2, col=1, showgrid=True, gridcolor="#333", range=[0.60, 1.02])
     fig.update_xaxes(title_text="Date", row=2, col=1, showgrid=True, gridcolor="#333")
-    fig.update_layout(title=dict(text=f"{title}<br><sup>{date_label}  ·  b = {latest_b:.4f}  ·  r² = {latest_r2:.4f}</sup>", x=0.5, xanchor="center"), template="plotly_dark", showlegend=False, hovermode="closest", margin=dict(t=80, b=140, l=70, r=90), annotations=[dict(xref="paper", yref="paper", x=0.0, y=-0.18, xanchor="left", yanchor="top", align="left", bgcolor="rgba(28,28,28,0.92)", bordercolor="#555", borderwidth=1, font=dict(family="Arial", size=12, color="#ddd"), showarrow=False, text=(f"<b>Scale coefficient (b)</b>  how fast the {series_label} rises  (y = a · x<sup>b</sup>)<br><b>r²</b>  share of the series explained by the power law")), dict(x=1, y=-0.18, xref="paper", yref="paper", xanchor="right", yanchor="top", text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>', showarrow=False)])
+    fig.update_layout(title=dict(text=f"{title}<br><sup>{date_label}  ·  b = {latest_b:.4f}  ·  r² = {latest_r2:.4f}</sup>", x=0.5, xanchor="center"), template="plotly_dark", showlegend=False, hovermode="closest", margin=dict(t=80, b=140, l=70, r=90), annotations=[dict(xref="paper", yref="paper", x=0.5, y=-0.16, xanchor="center", yanchor="top", align="center", font=dict(family="Arial", size=12, color="#b9b9b9"), showarrow=False, text=(f"Scale coefficient (b) — how fast the {series_label} rises (y = a · x<sup>b</sup>)<br>r² — share of the series explained by the power law")), dict(x=1, y=-0.16, xref="paper", yref="paper", xanchor="right", yanchor="top", text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>', showarrow=False)])
     extrema = _extrema_rows(stability) if show_extrema_table else []
     if show_extrema_table:
-        fig.add_trace(go.Table(header=dict(values=["", "Max", "Date", "Min", "Date"], fill_color="#2A2A2A", font=dict(family="Arial", color="white", size=11), align="center", height=24), cells=dict(values=list(map(list, zip(*extrema))), fill_color="#1C1C1C", font=dict(family="Arial", color="white", size=11), align="center", height=22), domain=dict(x=[0.58, 0.995], y=[0.04, 0.22])))
+        fig.add_trace(go.Table(header=dict(values=["", "Max", "Date", "Min", "Date"], fill_color="#2A2A2A", font=dict(family="Arial", color="white", size=11), align="center", height=24), cells=dict(values=list(map(list, zip(*extrema))), fill_color="#1C1C1C", font=dict(family="Arial", color="white", size=11), align="center", height=22), domain=dict(x=[0.48, 0.86], y=[0.01, 0.155])))
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
     html_path = CHARTS_DIR / html_name
     jpg_path = CHARTS_DIR / jpg_name
