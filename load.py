@@ -9,6 +9,10 @@ REQUIRED = [
     "btc_usd_chart.jpg",
     "btc_gold_ratio_chart.html",
     "btc_gold_ratio_chart.jpg",
+    "btc_usd_stability.html",
+    "btc_usd_stability.jpg",
+    "btc_gold_ratio_stability.html",
+    "btc_gold_ratio_stability.jpg",
     "index.html",
 ]
 
