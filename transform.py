@@ -313,14 +313,14 @@ def render_chart(model, *, title, yaxis_title, series_name, html_name, jpg_name,
 def write_chart_index():
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
     index_path = CHARTS_DIR / "index.html"
-    index_path.write_text("""<!doctype html>\n<html lang=\"en\">\n<head><meta charset=\"utf-8\"><title>BTC Power Law Charts</title>\n<style>body{font-family:Arial,sans-serif;background:#111;color:#eee;max-width:720px;margin:3rem auto;padding:0 1rem}a{color:#7dd3fc}li{margin:.6rem 0}</style>\n</head><body>\n<h1>Power Law Probability Channels</h1>\n<ul><li><a href=\"btc_usd_chart.html\">BTC/USD</a></li><li><a href=\"btc_gold_ratio_chart.html\">BTCUSD / GOLD</a></li></ul>\n</body></html>\n""", encoding="utf-8")
+    index_path.write_text("""<!doctype html>\n<html lang=\"en\">\n<head><meta charset=\"utf-8\"><title>BTC Power Law Charts</title>\n<style>body{font-family:Arial,sans-serif;background:#111;color:#eee;max-width:720px;margin:3rem auto;padding:0 1rem}a{color:#7dd3fc}li{margin:.6rem 0}</style>\n</head><body>\n<h1>Power Law Probability Channels</h1>\n<ul><li><a href=\"btc_usd_chart.html\">BTC/USD</a></li><li><a href=\"btc_gold_ratio_chart.html\">BTCUSD/GOLD</a></li></ul>\n</body></html>\n""", encoding="utf-8")
     logging.info("Wrote %s", index_path)
     return index_path
 
 
 def transform_data():
     render_chart(fit_power_law(clean_btc(), series_label="BTC/USD"), title="Power Law Probability Channel", yaxis_title="Price (USD)", series_name="Price", html_name="btc_usd_chart.html", jpg_name="btc_usd_chart.jpg", value_style="usd", fair_value_prefix="$", line_color="orange", show_forecast_table=True)
-    render_chart(fit_power_law(clean_btc_gold_ratio(), series_label="BTC/Gold"), title="BTCUSD / GOLD Power Law Probability Channel", yaxis_title="Ounces of gold per BTC", series_name="BTC/Gold", html_name="btc_gold_ratio_chart.html", jpg_name="btc_gold_ratio_chart.jpg", value_style="ratio", fair_value_prefix="", line_color="#FFD700", show_forecast_table=True)
+    render_chart(fit_power_law(clean_btc_gold_ratio(), series_label="BTC/Gold"), title="BTCUSD/GOLD Power Law Probability Channel", yaxis_title="Ounces of gold per BTC", series_name="BTC/Gold", html_name="btc_gold_ratio_chart.html", jpg_name="btc_gold_ratio_chart.jpg", value_style="ratio", fair_value_prefix="", line_color="#FFD700", show_forecast_table=True)
     write_chart_index()
 
 
