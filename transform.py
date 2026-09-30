@@ -199,7 +199,7 @@ def forecast_table_values(model, value_style="usd", unit=None):
 
 
 def add_forecast_table(fig, model, value_style="usd"):
-    header, columns, fills = forecast_table_values(model, value_style=value_style)
+    header, columns, fills = forecast_table_values(model, value_style=value_style, unit="Projection")
     fig.add_trace(go.Table(
         header=dict(values=header, fill_color=TABLE_HEADER_COLOR, font=dict(family="Arial", color="white", size=11), align="center", line=dict(color="#111111", width=1), height=24),
         cells=dict(values=columns, fill_color=fills, font=dict(family="Arial", color="white", size=11), align="center", line=dict(color="#111111", width=1), height=22),
@@ -240,8 +240,6 @@ def inject_html_table_controls(html_path, model, value_style):
     background: #2A2A2A; color: #fff; border: 1px solid #555;
     padding: 6px 10px; font: 12px Arial, sans-serif; cursor: pointer;
   }}
-  #chart-footer .credit {{ font: 12px Arial, sans-serif; color: #fff; }}
-  #chart-footer .credit a {{ color: #fff; }}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", function () {{
@@ -255,17 +253,8 @@ document.addEventListener("DOMContentLoaded", function () {{
   box.appendChild(holder.firstElementChild);
   const footer = document.createElement("div");
   footer.id = "chart-footer";
-  footer.innerHTML = '<button id="forecast-table-toggle">Hide table</button>'
-    + '<div class="credit">Chart by: <a href="https://x.com/CarlesMassa" target="_blank">@CarlesMassa</a></div>';
+  footer.innerHTML = '<button id="forecast-table-toggle">Hide table</button>';
   box.appendChild(footer);
-  gd.querySelectorAll("text, a").forEach(function (el) {{
-    if (el.closest("#chart-footer")) return;
-    const t = el.textContent || "";
-    if (t.indexOf("CarlesMassa") >= 0 || t.indexOf("Chart by") >= 0) {{
-      el.style.display = "none";
-      if (el.parentElement) el.parentElement.style.opacity = "0";
-    }}
-  }});
   document.getElementById("forecast-table-toggle").addEventListener("click", function () {{
     const tbl = document.getElementById("forecast-table");
     const hidden = tbl.style.display === "none";
