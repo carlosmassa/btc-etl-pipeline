@@ -67,6 +67,10 @@ jobs:
             charts/btc_usd_chart.html
             charts/btc_gold_ratio_chart.jpg
             charts/btc_gold_ratio_chart.html
+            charts/btc_usd_stability.jpg
+            charts/btc_usd_stability.html
+            charts/btc_gold_ratio_stability.jpg
+            charts/btc_gold_ratio_stability.html
             charts/index.html
           if-no-files-found: error
           retention-days: 7
@@ -81,6 +85,8 @@ jobs:
           mkdir -p temp
           mv charts/btc_usd_chart.html charts/btc_usd_chart.jpg temp/
           mv charts/btc_gold_ratio_chart.html charts/btc_gold_ratio_chart.jpg temp/
+          mv charts/btc_usd_stability.html charts/btc_usd_stability.jpg temp/
+          mv charts/btc_gold_ratio_stability.html charts/btc_gold_ratio_stability.jpg temp/
           mv charts/index.html temp/
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             git fetch origin gh-pages
@@ -93,6 +99,8 @@ jobs:
           mv temp/* charts/
           git add charts/btc_usd_chart.html charts/btc_usd_chart.jpg \
                   charts/btc_gold_ratio_chart.html charts/btc_gold_ratio_chart.jpg \
+                  charts/btc_usd_stability.html charts/btc_usd_stability.jpg \
+                  charts/btc_gold_ratio_stability.html charts/btc_gold_ratio_stability.jpg \
                   charts/index.html
           git commit -m "Update BTC and BTC/Gold charts for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
