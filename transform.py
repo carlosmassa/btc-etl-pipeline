@@ -170,7 +170,7 @@ def _predict_price(fit, days_since_genesis):
 
 def _table_cell(value, value_style):
     if value_style == "usd":
-        return f"{value / 1000:,.0f}"
+        return f"${value / 1000:,.0f}k"
     return f"{value:,.2f}"
 
 
