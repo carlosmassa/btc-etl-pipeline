@@ -9,13 +9,7 @@ CHARTS_DIR = Path("charts")
 STABILITY_MIN_POINTS = 400
 STABILITY_CMIN = 0.70
 STABILITY_CMAX = 1.00
-STABILITY_COLORSCALE = [
-    [0.00, "#D62728"],
-    [0.35, "#FF7F0E"],
-    [0.55, "#FFDD00"],
-    [0.80, "#90EE90"],
-    [1.00, "#2CA02C"],
-]
+STABILITY_COLORSCALE = [[0.00, "#D62728"], [0.35, "#FF7F0E"], [0.55, "#FFDD00"], [0.80, "#90EE90"], [1.00, "#2CA02C"]]
 
 
 def compute_power_law_stability(df, min_points=STABILITY_MIN_POINTS):
@@ -41,7 +35,54 @@ def compute_power_law_stability(df, min_points=STABILITY_MIN_POINTS):
     return out
 
 
-def render_stability_chart(stability, *, title, html_name, jpg_name, series_label):
+def _extrema_rows(stability):
+    def row(metric, series, fmt):
+        imax, imin = series.idxmax(), series.idxmin()
+        dmax = pd.Timestamp(stability.loc[imax, "Date"]).strftime("%d %b %Y")
+        dmin = pd.Timestamp(stability.loc[imin, "Date"]).strftime("%d %b %Y")
+        return [metric, fmt(series.loc[imax]), dmax, fmt(series.loc[imin]), dmin]
+    return [row("b", stability["slope"], lambda v: f"{float(v):.4f}"), row("r²", stability["r2"], lambda v: f"{float(v):.4f}")]
+
+
+def inject_extrema_table(html_path, rows):
+    thead = "<tr><th></th><th>Max</th><th>Date</th><th>Min</th><th>Date</th></tr>"
+    body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in row) + "</tr>" for row in rows)
+    snippet = f"""
+<style>
+  .plotly-graph-div {{ position: relative; }}
+  #extrema-table {{ position: absolute; left: 3%; bottom: 14%; z-index: 20; border-collapse: collapse; font: 13px Arial, sans-serif; color: #fff; }}
+  #extrema-table th, #extrema-table td {{ padding: 4px 8px; text-align: center; border: 1px solid #111; background: #1C1C1C; }}
+  #extrema-table th {{ background: #2A2A2A; font-weight: normal; }}
+  #extrema-table td:first-child {{ background: #2A2A2A; }}
+  #extrema-toggle {{ position: absolute; left: 3%; bottom: 8%; z-index: 30; background: #2A2A2A; color: #fff; border: 1px solid #555; padding: 6px 10px; font: 12px Arial, sans-serif; cursor: pointer; }}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", function () {{
+  const gd = document.querySelector(".plotly-graph-div");
+  if (!gd) return;
+  const box = gd.querySelector(".plot-container") || gd;
+  box.style.position = "relative";
+  const wrap = document.createElement("div");
+  wrap.innerHTML = '<table id="extrema-table"><thead>{thead}</thead><tbody>{body}</tbody></table>';
+  box.appendChild(wrap.firstElementChild);
+  const btn = document.createElement("button");
+  btn.id = "extrema-toggle";
+  btn.textContent = "Hide table";
+  box.appendChild(btn);
+  btn.addEventListener("click", function () {{
+    const tbl = document.getElementById("extrema-table");
+    const hidden = tbl.style.display === "none";
+    tbl.style.display = hidden ? "table" : "none";
+    this.textContent = hidden ? "Hide table" : "Show table";
+  }});
+}});
+</script>
+"""
+    text = html_path.read_text(encoding="utf-8")
+    html_path.write_text(text.replace("</body>", snippet + "\n</body>", 1) if "</body>" in text else text + snippet, encoding="utf-8")
+
+
+def render_stability_chart(stability, *, title, html_name, jpg_name, series_label, show_extrema_table=False):
     from plotly.subplots import make_subplots
     latest = stability.iloc[-1]
     date_label = pd.Timestamp(latest["Date"]).strftime("%d %B %Y")
@@ -54,10 +95,17 @@ def render_stability_chart(stability, *, title, html_name, jpg_name, series_labe
     fig.update_yaxes(title_text="r²", row=2, col=1, showgrid=True, gridcolor="#333", range=[0.60, 1.02])
     fig.update_xaxes(title_text="Date", row=2, col=1, showgrid=True, gridcolor="#333")
     fig.update_layout(title=dict(text=f"{title}<br><sup>{date_label}  ·  b = {latest_b:.4f}  ·  r² = {latest_r2:.4f}</sup>", x=0.5, xanchor="center"), template="plotly_dark", showlegend=False, hovermode="closest", annotations=[dict(xref="paper", yref="paper", x=0.98, y=0.28, xanchor="right", yanchor="top", align="left", bgcolor="rgba(20,20,20,0.75)", bordercolor="#888", borderwidth=1, font=dict(family="Arial", size=12, color="#ddd"), showarrow=False, text=(f"Scale Coefficient (b):<br>How fast is the {series_label} rising?  (y = a · x<sup>b</sup>)<br><br>Coefficient of Determination (r²):<br>What % of the series is explained by the power law?")), dict(x=1, y=-0.12, xref="paper", yref="paper", xanchor="right", text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>', showarrow=False)])
+    extrema = _extrema_rows(stability) if show_extrema_table else []
+    if show_extrema_table:
+        fig.add_trace(go.Table(header=dict(values=["", "Max", "Date", "Min", "Date"], fill_color="#2A2A2A", font=dict(family="Arial", color="white", size=11), align="center", height=24), cells=dict(values=list(map(list, zip(*extrema))), fill_color="#1C1C1C", font=dict(family="Arial", color="white", size=11), align="center", height=22), domain=dict(x=[0.02, 0.46], y=[0.02, 0.22])))
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
     html_path = CHARTS_DIR / html_name
     jpg_path = CHARTS_DIR / jpg_name
     fig.write_image(str(jpg_path), width=1600, height=1100, scale=2)
+    if show_extrema_table:
+        fig.data = tuple(tr for tr in fig.data if getattr(tr, "type", None) != "table")
     fig.write_html(str(html_path), auto_open=False)
+    if show_extrema_table:
+        inject_extrema_table(html_path, extrema)
     logging.info("Wrote %s and %s", html_path, jpg_path)
     return html_path, jpg_path
