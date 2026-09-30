@@ -10,6 +10,13 @@ STABILITY_MIN_POINTS = 400
 STABILITY_CMIN = 0.70
 STABILITY_CMAX = 1.00
 STABILITY_COLORSCALE = [[0.00, "#D62728"], [0.35, "#FF7F0E"], [0.55, "#FFDD00"], [0.80, "#90EE90"], [1.00, "#2CA02C"]]
+HTML_CONFIG = {
+    "displayModeBar": True,
+    "displaylogo": False,
+    "responsive": True,
+    "scrollZoom": True,
+    "modeBarButtonsToAdd": ["drawline", "drawopenpath", "drawclosedpath", "drawcircle", "drawrect", "eraseshape", "v1hovermode", "togglespikelines"],
+}
 
 
 def compute_power_law_stability(df, min_points=STABILITY_MIN_POINTS):
@@ -106,7 +113,7 @@ def render_stability_chart(stability, *, title, html_name, jpg_name, series_labe
         logging.warning("Could not write %s (%s)", jpg_path, exc)
     if show_extrema_table:
         fig.data = tuple(tr for tr in fig.data if getattr(tr, "type", None) != "table")
-    fig.write_html(str(html_path), auto_open=False)
+    fig.write_html(str(html_path), auto_open=False, config=HTML_CONFIG)
     if show_extrema_table:
         inject_extrema_table(html_path, extrema)
     logging.info("Wrote %s and %s", html_path, jpg_path)
