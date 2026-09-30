@@ -224,11 +224,6 @@ def inject_html_table_controls(html_path, model, value_style):
     snippet = f"""
 <style>
   .plotly-graph-div {{ position: relative; }}
-  #forecast-table-toggle {{
-    position: fixed; right: 16px; bottom: 44px; top: auto; z-index: 30;
-    background: #2A2A2A; color: #fff; border: 1px solid #555;
-    padding: 6px 10px; font: 12px Arial, sans-serif; cursor: pointer;
-  }}
   #forecast-table {{
     position: absolute; right: 3%; bottom: 16%; z-index: 20;
     border-collapse: collapse; font: 14px Arial, sans-serif; color: #fff;
@@ -237,25 +232,45 @@ def inject_html_table_controls(html_path, model, value_style):
     padding: 5px 10px; text-align: center; border: 1px solid #111;
   }}
   #forecast-table th {{ background: {TABLE_HEADER_COLOR}; font-weight: normal; }}
+  #chart-footer {{
+    position: absolute; right: 12px; bottom: 9%; z-index: 30;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+  }}
+  #forecast-table-toggle {{
+    background: #2A2A2A; color: #fff; border: 1px solid #555;
+    padding: 6px 10px; font: 12px Arial, sans-serif; cursor: pointer;
+  }}
+  #chart-footer .credit {{ font: 12px Arial, sans-serif; color: #fff; }}
+  #chart-footer .credit a {{ color: #fff; }}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", function () {{
   const gd = document.querySelector(".plotly-graph-div");
   if (!gd) return;
-  const box = gd.querySelector(".svg-container") || gd.querySelector(".plot-container") || gd;
+  gd.style.position = "relative";
+  const box = gd.querySelector(".plot-container") || gd;
   box.style.position = "relative";
-  const btn = document.createElement("button");
-  btn.id = "forecast-table-toggle";
-  btn.textContent = "Hide table";
   const holder = document.createElement("div");
   holder.innerHTML = `{table_markup}`;
   box.appendChild(holder.firstElementChild);
-  gd.appendChild(btn);
-  btn.addEventListener("click", function () {{
+  const footer = document.createElement("div");
+  footer.id = "chart-footer";
+  footer.innerHTML = '<button id="forecast-table-toggle">Hide table</button>'
+    + '<div class="credit">Chart by: <a href="https://x.com/CarlesMassa" target="_blank">@CarlesMassa</a></div>';
+  box.appendChild(footer);
+  gd.querySelectorAll("text, a").forEach(function (el) {{
+    if (el.closest("#chart-footer")) return;
+    const t = el.textContent || "";
+    if (t.indexOf("CarlesMassa") >= 0 || t.indexOf("Chart by") >= 0) {{
+      el.style.display = "none";
+      if (el.parentElement) el.parentElement.style.opacity = "0";
+    }}
+  }});
+  document.getElementById("forecast-table-toggle").addEventListener("click", function () {{
     const tbl = document.getElementById("forecast-table");
     const hidden = tbl.style.display === "none";
     tbl.style.display = hidden ? "table" : "none";
-    btn.textContent = hidden ? "Hide table" : "Show table";
+    this.textContent = hidden ? "Hide table" : "Show table";
   }});
 }});
 </script>
