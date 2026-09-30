@@ -55,7 +55,7 @@ def parse_price_dates(series: pd.Series) -> pd.Series:
     return pd.to_datetime(series, dayfirst=True, errors="coerce")
 
 
-def _coef(fit) -> tuple[float, float]:
+def _coef(fit):
     params = fit.params
     if hasattr(params, "iloc"):
         return float(params.iloc[0]), float(params.iloc[1])
@@ -107,8 +107,7 @@ def clean_btc_gold_ratio() -> pd.DataFrame:
     merged = merged.dropna(subset=["Value", "Gold"])
     merged = merged[merged["Gold"] > 0]
     merged["Value"] = merged["Value"] / merged["Gold"]
-    ratio = merged[["Date", "Value"]].copy()
-    return _finalize_series(ratio, "BTC/Gold ratio")
+    return _finalize_series(merged[["Date", "Value"]].copy(), "BTC/Gold ratio")
 
 
 def fit_power_law(df: pd.DataFrame, series_label: str = "series") -> dict:
@@ -149,10 +148,9 @@ def estimate_price_quantile(y, X_with_const, latest_price, lo=0.001, hi=0.999, m
     def pred_at(q):
         pred = sm.QuantReg(y, X_with_const).fit(q=q, max_iter=5000).predict(x_last)
         return float(pred.iloc[0] if hasattr(pred, "iloc") else pred[0])
-    low_pred, high_pred = pred_at(lo), pred_at(hi)
-    if target <= low_pred:
+    if target <= pred_at(lo):
         return lo
-    if target >= high_pred:
+    if target >= pred_at(hi):
         return hi
     for _ in range(max_iter):
         mid = (lo + hi) / 2.0
@@ -176,9 +174,11 @@ def _table_cell(value, value_style):
     return f"{value:,.2f}"
 
 
-def forecast_table_values(model, value_style="usd", unit="Projection"):
+def forecast_table_values(model, value_style="usd", unit=None):
     latest_date = model["latest_date"]
     fits = model["fits"]
+    if unit is None:
+        unit = "$k" if value_style == "usd" else "oz"
     header = [unit] + [name for name, _ in FORECAST_HORIZONS]
     row_labels, row_prices, row_colors = [], [], []
     for q in reversed(CHART_QUANTILES):
@@ -201,16 +201,16 @@ def forecast_table_values(model, value_style="usd", unit="Projection"):
 def add_forecast_table(fig, model, value_style="usd"):
     header, columns, fills = forecast_table_values(model, value_style=value_style)
     fig.add_trace(go.Table(
-        header=dict(values=header, fill_color=TABLE_HEADER_COLOR, font=dict(family="Arial", color="white", size=14), align="center", line=dict(color="#111111", width=1), height=30),
-        cells=dict(values=columns, fill_color=fills, font=dict(family="Arial", color="white", size=14), align="center", line=dict(color="#111111", width=1), height=28),
-        domain=dict(x=[0.50, 0.995], y=[0.02, 0.44]),
+        header=dict(values=header, fill_color=TABLE_HEADER_COLOR, font=dict(family="Arial", color="white", size=11), align="center", line=dict(color="#111111", width=1), height=24),
+        cells=dict(values=columns, fill_color=fills, font=dict(family="Arial", color="white", size=11), align="center", line=dict(color="#111111", width=1), height=22),
+        domain=dict(x=[0.55, 0.995], y=[0.02, 0.38]),
         name="Forecast table",
         visible=True,
     ))
 
 
 def inject_html_table_controls(html_path, model, value_style):
-    header, columns, fills = forecast_table_values(model, value_style=value_style)
+    header, columns, fills = forecast_table_values(model, value_style=value_style, unit="Projection")
     n_rows = len(columns[0])
     thead = "<tr>" + "".join(f"<th>{h}</th>" for h in header) + "</tr>"
     body_rows = []
@@ -225,12 +225,12 @@ def inject_html_table_controls(html_path, model, value_style):
 <style>
   .plotly-graph-div {{ position: relative; }}
   #forecast-table-toggle {{
-    position: absolute; right: 12px; bottom: 8px; top: auto; z-index: 30;
+    position: fixed; right: 16px; bottom: 16px; top: auto; z-index: 30;
     background: #2A2A2A; color: #fff; border: 1px solid #555;
     padding: 6px 10px; font: 12px Arial, sans-serif; cursor: pointer;
   }}
   #forecast-table {{
-    position: absolute; right: 12px; bottom: 44px; z-index: 20;
+    position: absolute; right: 3%; bottom: 16%; z-index: 20;
     border-collapse: collapse; font: 14px Arial, sans-serif; color: #fff;
   }}
   #forecast-table th, #forecast-table td {{
@@ -242,15 +242,15 @@ def inject_html_table_controls(html_path, model, value_style):
 document.addEventListener("DOMContentLoaded", function () {{
   const gd = document.querySelector(".plotly-graph-div");
   if (!gd) return;
-  const box = gd.querySelector(".plot-container") || gd;
+  const box = gd.querySelector(".svg-container") || gd.querySelector(".plot-container") || gd;
   box.style.position = "relative";
   const btn = document.createElement("button");
   btn.id = "forecast-table-toggle";
   btn.textContent = "Hide table";
   const holder = document.createElement("div");
   holder.innerHTML = `{table_markup}`;
-  box.appendChild(btn);
   box.appendChild(holder.firstElementChild);
+  gd.appendChild(btn);
   btn.addEventListener("click", function () {{
     const tbl = document.getElementById("forecast-table");
     const hidden = tbl.style.display === "none";
@@ -309,24 +309,14 @@ def render_chart(model, *, title, yaxis_title, series_name, html_name, jpg_name,
 def write_chart_index():
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
     index_path = CHARTS_DIR / "index.html"
-    index_path.write_text("""<!doctype html>
-<html lang=\"en\">
-<head><meta charset=\"utf-8\"><title>BTC Power Law Charts</title>
-<style>body{font-family:Arial,sans-serif;background:#111;color:#eee;max-width:720px;margin:3rem auto;padding:0 1rem}a{color:#7dd3fc}li{margin:.6rem 0}</style>
-</head><body>
-<h1>Power Law Probability Channels</h1>
-<ul><li><a href=\"btc_usd_chart.html\">BTC/USD</a></li><li><a href=\"btc_gold_ratio_chart.html\">BTCUSD / GOLD</a></li></ul>
-</body></html>
-""", encoding="utf-8")
+    index_path.write_text("""<!doctype html>\n<html lang=\"en\">\n<head><meta charset=\"utf-8\"><title>BTC Power Law Charts</title>\n<style>body{font-family:Arial,sans-serif;background:#111;color:#eee;max-width:720px;margin:3rem auto;padding:0 1rem}a{color:#7dd3fc}li{margin:.6rem 0}</style>\n</head><body>\n<h1>Power Law Probability Channels</h1>\n<ul><li><a href=\"btc_usd_chart.html\">BTC/USD</a></li><li><a href=\"btc_gold_ratio_chart.html\">BTCUSD / GOLD</a></li></ul>\n</body></html>\n""", encoding="utf-8")
     logging.info("Wrote %s", index_path)
     return index_path
 
 
 def transform_data():
-    btc_model = fit_power_law(clean_btc(), series_label="BTC/USD")
-    render_chart(btc_model, title="Power Law Probability Channel", yaxis_title="Price (USD)", series_name="Price", html_name="btc_usd_chart.html", jpg_name="btc_usd_chart.jpg", value_style="usd", fair_value_prefix="$", line_color="orange", show_forecast_table=True)
-    ratio_model = fit_power_law(clean_btc_gold_ratio(), series_label="BTC/Gold")
-    render_chart(ratio_model, title="BTCUSD / GOLD Power Law Probability Channel", yaxis_title="Ounces of gold per BTC", series_name="BTC/Gold", html_name="btc_gold_ratio_chart.html", jpg_name="btc_gold_ratio_chart.jpg", value_style="ratio", fair_value_prefix="", line_color="#FFD700", show_forecast_table=True)
+    render_chart(fit_power_law(clean_btc(), series_label="BTC/USD"), title="Power Law Probability Channel", yaxis_title="Price (USD)", series_name="Price", html_name="btc_usd_chart.html", jpg_name="btc_usd_chart.jpg", value_style="usd", fair_value_prefix="$", line_color="orange", show_forecast_table=True)
+    render_chart(fit_power_law(clean_btc_gold_ratio(), series_label="BTC/Gold"), title="BTCUSD / GOLD Power Law Probability Channel", yaxis_title="Ounces of gold per BTC", series_name="BTC/Gold", html_name="btc_gold_ratio_chart.html", jpg_name="btc_gold_ratio_chart.jpg", value_style="ratio", fair_value_prefix="", line_color="#FFD700", show_forecast_table=True)
     write_chart_index()
 
 
