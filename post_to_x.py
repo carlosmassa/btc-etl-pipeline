@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from datetime import datetime, timezone
 
 import tweepy
 
@@ -8,9 +9,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 MAX_ATTEMPTS = 3
 RETRY_SECONDS = 60
-CHARTS = [
-    ("charts/btc_usd_chart.jpg", "Daily BTC/USD Power Law Probability Channel Chart #Bitcoin"),
-    ("charts/btc_gold_ratio_chart.jpg", "Daily BTCUSD/GOLD Power Law Probability Channel Chart #Bitcoin #Gold"),
+DAILY_CHARTS = [
+    ("charts/btc_usd_chart.jpg", "Daily BTCUSD Power Law Probability Channel #Bitcoin"),
+    ("charts/btc_gold_ratio_chart.jpg", "Daily BTC/GOLD Power Law Probability Channel #Bitcoin #Gold"),
+]
+MONTHLY_CHARTS = [
+    ("charts/btc_usd_stability.jpg", "Monthly BTCUSD Power Law Stabilization #Bitcoin"),
+    ("charts/btc_gold_ratio_stability.jpg", "Monthly BTC/GOLD Power Law Stabilization #Bitcoin #Gold"),
 ]
 
 
@@ -40,6 +45,17 @@ def _post_one(api, client, jpg_path: str, caption: str) -> None:
     raise RuntimeError(f"Failed to post {jpg_path} after {MAX_ATTEMPTS} attempts") from last_error
 
 
+def charts_for_today(now=None):
+    now = now or datetime.now(timezone.utc)
+    charts = list(DAILY_CHARTS)
+    if now.day == 1:
+        logging.info("First of the month (%s) — also posting stability JPGs", now.date())
+        charts.extend(MONTHLY_CHARTS)
+    else:
+        logging.info("Day %s — posting only the two probability-channel JPGs", now.day)
+    return charts
+
+
 def post_to_x() -> None:
     api_key = _require_env("X_API_KEY")
     api_secret = _require_env("X_API_SECRET")
@@ -58,7 +74,7 @@ def post_to_x() -> None:
         access_token=access_token,
         access_token_secret=access_token_secret,
     )
-    for jpg_path, caption in CHARTS:
+    for jpg_path, caption in charts_for_today():
         _post_one(api, client, jpg_path, caption)
 
 
