@@ -43,7 +43,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Transform data
-        run: python transform.py
+        run: python run_pipeline.py
 
       - name: Load data
         run: python load.py
