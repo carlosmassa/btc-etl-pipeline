@@ -80,7 +80,7 @@ def forecast_table_values(model):
         prices = []
         for _, offset in HORIZONS:
             up, fit, lo = _predict(model, model["last"] + pd.Timedelta(days=offset))
-            prices.append(_cell({" +2σ": up, "+2σ": up, "Fit": fit, "-2σ": lo}[label]))
+            prices.append(_cell({"+2σ": up, "Fit": fit, "-2σ": lo}[label]))
         rows.append((label, prices, ROW_COLORS[label]))
     columns = [[label for label, _, _ in rows]]
     fills = [[TABLE_LABEL_COLOR] * len(rows)]
@@ -141,15 +141,28 @@ document.addEventListener("DOMContentLoaded", function () {{
 
 
 def render_nlb_basic(nlb):
+    model = _fit_nlb(nlb)
     latest = nlb.iloc[-1]
     date_label = pd.Timestamp(latest["Date"]).strftime("%d %B %Y")
+    future_dates = pd.date_range(model["last"], model["last"] + pd.Timedelta(days=FUTURE_DAYS), freq="D")
+    hist_up, hist_fit, hist_lo = zip(*[_predict(model, d) for d in nlb["Date"]])
+    fut_up, fut_fit, fut_lo = zip(*[_predict(model, d) for d in future_dates])
+    band_x = list(nlb["Date"]) + list(future_dates)
     fig = go.Figure()
+    fig.add_trace(go.Scatter(x=band_x, y=list(hist_up) + list(fut_up), mode="lines", name="+2σ", line=dict(color="rgba(245,162,74,0.55)", width=1.5), hovertemplate="Date=%{x|%d %b %Y}<br>+2σ=$%{y:,.0f}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=band_x, y=list(hist_lo) + list(fut_lo), mode="lines", name="-2σ", line=dict(color="rgba(245,162,74,0.55)", width=1.5), fill="tonexty", fillcolor="rgba(245,162,74,0.10)", hovertemplate="Date=%{x|%d %b %Y}<br>-2σ=$%{y:,.0f}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=band_x, y=list(hist_fit) + list(fut_fit), mode="lines", name="Fit", line=dict(color=FIT_COLOR, width=2), hovertemplate="Date=%{x|%d %b %Y}<br>Fit=$%{y:,.0f}<extra></extra>"))
     fig.add_trace(go.Scatter(x=nlb["Date"], y=nlb["Value"], mode="lines", name="Price", line=dict(color=PRICE_COLOR, width=1.6), hovertemplate="Date=%{x|%d %b %Y}<br>Price=$%{y:,.0f}<extra></extra>"))
     fig.add_trace(go.Scatter(x=nlb["Date"], y=nlb["nlb"], mode="lines", name="NLB floor", line=dict(color=NLB_COLOR, width=2.4), hovertemplate="Date=%{x|%d %b %Y}<br>NLB=$%{y:,.0f}<extra></extra>"))
     fig.update_yaxes(title_text="Price (USD)", type="log", showgrid=True, gridcolor="#333")
     fig.update_xaxes(title_text="Date", showgrid=True, gridcolor="#333")
     fig.update_layout(title=dict(text=f"BTCUSD Never Look Back Price<br><sup>{date_label}  ·  Price ${float(latest['Value']):,.0f}  ·  NLB ${float(latest['nlb']):,.0f}</sup>", x=0.5, xanchor="center"), template="plotly_dark", legend=dict(orientation="h", y=-0.16, x=0), hovermode="closest", margin=dict(t=80, b=110, l=70, r=40), annotations=[_credit()])
-    return _write(fig, "btc_usd_nlb.html", "btc_usd_nlb.jpg")
+    add_forecast_table(fig, model)
+    html_path, jpg_path = _write(fig, "btc_usd_nlb.html", "btc_usd_nlb.jpg")
+    fig.data = tuple(tr for tr in fig.data if getattr(tr, "type", None) != "table")
+    fig.write_html(str(html_path), auto_open=False, config=HTML_CONFIG)
+    inject_html_table_controls(html_path, model)
+    return html_path, jpg_path
 
 
 def render_nlb_regression(nlb):
