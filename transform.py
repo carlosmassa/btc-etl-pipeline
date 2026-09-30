@@ -225,7 +225,7 @@ def inject_html_table_controls(html_path, model, value_style):
 <style>
   .plotly-graph-div {{ position: relative; }}
   #forecast-table-toggle {{
-    position: fixed; right: 16px; bottom: 16px; top: auto; z-index: 30;
+    position: fixed; right: 16px; bottom: 44px; top: auto; z-index: 30;
     background: #2A2A2A; color: #fff; border: 1px solid #555;
     padding: 6px 10px; font: 12px Arial, sans-serif; cursor: pointer;
   }}
