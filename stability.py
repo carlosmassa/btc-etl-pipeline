@@ -44,17 +44,22 @@ def _extrema_rows(stability):
     return [row("b", stability["slope"], lambda v: f"{float(v):.4f}"), row("r²", stability["r2"], lambda v: f"{float(v):.4f}")]
 
 
-def inject_extrema_table(html_path, rows):
+def inject_extrema_table(html_path, rows, series_label):
     thead = "<tr><th></th><th>Max</th><th>Date</th><th>Min</th><th>Date</th></tr>"
     body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in row) + "</tr>" for row in rows)
     snippet = f"""
 <style>
   .plotly-graph-div {{ position: relative; }}
-  #extrema-table {{ position: absolute; left: 3%; bottom: 14%; z-index: 20; border-collapse: collapse; font: 13px Arial, sans-serif; color: #fff; }}
-  #extrema-table th, #extrema-table td {{ padding: 4px 8px; text-align: center; border: 1px solid #111; background: #1C1C1C; }}
+  #stability-caption {{ position: absolute; left: 64px; right: 16px; bottom: 8%; z-index: 20; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }}
+  #stability-note {{ background: rgba(28,28,28,0.94); border: 1px solid #555; border-radius: 4px; padding: 8px 12px; font: 12px Arial, sans-serif; color: #ddd; line-height: 1.45; }}
+  #stability-note b {{ color: #fff; }}
+  #stability-credit {{ font: 12px Arial, sans-serif; color: #ccc; white-space: nowrap; }}
+  #extrema-footer {{ position: absolute; right: 16px; bottom: 18%; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }}
+  #extrema-table {{ border-collapse: collapse; font: 13px Arial, sans-serif; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }}
+  #extrema-table th, #extrema-table td {{ padding: 6px 10px; text-align: center; border: 1px solid #111; background: #1C1C1C; }}
   #extrema-table th {{ background: #2A2A2A; font-weight: normal; }}
-  #extrema-table td:first-child {{ background: #2A2A2A; }}
-  #extrema-toggle {{ position: absolute; left: 3%; bottom: 8%; z-index: 30; background: #2A2A2A; color: #fff; border: 1px solid #555; padding: 6px 10px; font: 12px Arial, sans-serif; cursor: pointer; }}
+  #extrema-table td:first-child {{ background: #2A2A2A; font-weight: bold; }}
+  #extrema-toggle {{ background: #2A2A2A; color: #fff; border: 1px solid #555; padding: 6px 10px; font: 12px Arial, sans-serif; cursor: pointer; }}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", function () {{
@@ -62,14 +67,15 @@ document.addEventListener("DOMContentLoaded", function () {{
   if (!gd) return;
   const box = gd.querySelector(".plot-container") || gd;
   box.style.position = "relative";
-  const wrap = document.createElement("div");
-  wrap.innerHTML = '<table id="extrema-table"><thead>{thead}</thead><tbody>{body}</tbody></table>';
-  box.appendChild(wrap.firstElementChild);
-  const btn = document.createElement("button");
-  btn.id = "extrema-toggle";
-  btn.textContent = "Hide table";
-  box.appendChild(btn);
-  btn.addEventListener("click", function () {{
+  const footer = document.createElement("div");
+  footer.id = "extrema-footer";
+  footer.innerHTML = '<table id="extrema-table"><thead>{thead}</thead><tbody>{body}</tbody></table><button id="extrema-toggle">Hide table</button>';
+  box.appendChild(footer);
+  const caption = document.createElement("div");
+  caption.id = "stability-caption";
+  caption.innerHTML = '<div id="stability-note"><b>Scale coefficient (b)</b> — how fast the {series_label} rises (y = a · x<sup>b</sup>)<br><b>r²</b> — share of the series explained by the power law</div><div id="stability-credit">Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color:#fff">@CarlesMassa</a></div>';
+  box.appendChild(caption);
+  document.getElementById("extrema-toggle").addEventListener("click", function () {{
     const tbl = document.getElementById("extrema-table");
     const hidden = tbl.style.display === "none";
     tbl.style.display = hidden ? "table" : "none";
@@ -94,10 +100,10 @@ def render_stability_chart(stability, *, title, html_name, jpg_name, series_labe
     fig.update_yaxes(title_text="Scale Coefficient (b)", row=1, col=1, showgrid=True, gridcolor="#333")
     fig.update_yaxes(title_text="r²", row=2, col=1, showgrid=True, gridcolor="#333", range=[0.60, 1.02])
     fig.update_xaxes(title_text="Date", row=2, col=1, showgrid=True, gridcolor="#333")
-    fig.update_layout(title=dict(text=f"{title}<br><sup>{date_label}  ·  b = {latest_b:.4f}  ·  r² = {latest_r2:.4f}</sup>", x=0.5, xanchor="center"), template="plotly_dark", showlegend=False, hovermode="closest", annotations=[dict(xref="paper", yref="paper", x=0.98, y=0.28, xanchor="right", yanchor="top", align="left", bgcolor="rgba(20,20,20,0.75)", bordercolor="#888", borderwidth=1, font=dict(family="Arial", size=12, color="#ddd"), showarrow=False, text=(f"Scale Coefficient (b):<br>How fast is the {series_label} rising?  (y = a · x<sup>b</sup>)<br><br>Coefficient of Determination (r²):<br>What % of the series is explained by the power law?")), dict(x=1, y=-0.12, xref="paper", yref="paper", xanchor="right", text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>', showarrow=False)])
+    fig.update_layout(title=dict(text=f"{title}<br><sup>{date_label}  ·  b = {latest_b:.4f}  ·  r² = {latest_r2:.4f}</sup>", x=0.5, xanchor="center"), template="plotly_dark", showlegend=False, hovermode="closest", margin=dict(t=80, b=140, l=70, r=90), annotations=[dict(xref="paper", yref="paper", x=0.0, y=-0.18, xanchor="left", yanchor="top", align="left", bgcolor="rgba(28,28,28,0.92)", bordercolor="#555", borderwidth=1, font=dict(family="Arial", size=12, color="#ddd"), showarrow=False, text=(f"<b>Scale coefficient (b)</b>  how fast the {series_label} rises  (y = a · x<sup>b</sup>)<br><b>r²</b>  share of the series explained by the power law")), dict(x=1, y=-0.18, xref="paper", yref="paper", xanchor="right", yanchor="top", text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>', showarrow=False)])
     extrema = _extrema_rows(stability) if show_extrema_table else []
     if show_extrema_table:
-        fig.add_trace(go.Table(header=dict(values=["", "Max", "Date", "Min", "Date"], fill_color="#2A2A2A", font=dict(family="Arial", color="white", size=11), align="center", height=24), cells=dict(values=list(map(list, zip(*extrema))), fill_color="#1C1C1C", font=dict(family="Arial", color="white", size=11), align="center", height=22), domain=dict(x=[0.02, 0.46], y=[0.02, 0.22])))
+        fig.add_trace(go.Table(header=dict(values=["", "Max", "Date", "Min", "Date"], fill_color="#2A2A2A", font=dict(family="Arial", color="white", size=11), align="center", height=24), cells=dict(values=list(map(list, zip(*extrema))), fill_color="#1C1C1C", font=dict(family="Arial", color="white", size=11), align="center", height=22), domain=dict(x=[0.58, 0.995], y=[0.04, 0.22])))
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
     html_path = CHARTS_DIR / html_name
     jpg_path = CHARTS_DIR / jpg_name
@@ -106,6 +112,6 @@ def render_stability_chart(stability, *, title, html_name, jpg_name, series_labe
         fig.data = tuple(tr for tr in fig.data if getattr(tr, "type", None) != "table")
     fig.write_html(str(html_path), auto_open=False)
     if show_extrema_table:
-        inject_extrema_table(html_path, extrema)
+        inject_extrema_table(html_path, extrema, series_label)
     logging.info("Wrote %s and %s", html_path, jpg_path)
     return html_path, jpg_path
