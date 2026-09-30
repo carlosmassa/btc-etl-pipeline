@@ -274,8 +274,73 @@ def add_forecast_table(fig: go.Figure, model: dict, value_style: str = "usd") ->
                 height=22,
             ),
             domain=dict(x=[0.55, 0.995], y=[0.02, 0.38]),
+            name="Forecast table",
+            visible=True,
         )
     )
+
+
+def inject_html_table_controls(html_path: Path, model: dict, value_style: str) -> None:
+    """Overlay an HTML table + Hide/Show button. Plotly Table traces ignore visible=False."""
+    header, columns, fills = forecast_table_values(model, value_style=value_style)
+    n_rows = len(columns[0])
+    thead = "<tr>" + "".join(f"<th>{h}</th>" for h in header) + "</tr>"
+    body_rows = []
+    for r in range(n_rows):
+        cells = []
+        for c in range(len(header)):
+            bg = TABLE_LABEL_COLOR if c == 0 else fills[1][r]
+            cells.append(f'<td style="background:{bg}">{columns[c][r]}</td>')
+        body_rows.append("<tr>" + "".join(cells) + "</tr>")
+    table_markup = (
+        f'<table id="forecast-table"><thead>{thead}</thead>'
+        f"<tbody>{''.join(body_rows)}</tbody></table>"
+    )
+    snippet = f"""
+<style>
+  .plotly-graph-div {{ position: relative; }}
+  #forecast-table-toggle {{
+    position: absolute; top: 10px; right: 14px; z-index: 30;
+    background: #2A2A2A; color: #fff; border: 1px solid #555;
+    padding: 6px 10px; font: 12px Arial, sans-serif; cursor: pointer;
+  }}
+  #forecast-table {{
+    position: absolute; right: 3%; bottom: 16%; z-index: 20;
+    border-collapse: collapse; font: 11px Arial, sans-serif; color: #fff;
+  }}
+  #forecast-table th, #forecast-table td {{
+    padding: 4px 8px; text-align: center; border: 1px solid #111;
+  }}
+  #forecast-table th {{ background: {TABLE_HEADER_COLOR}; font-weight: normal; }}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", function () {{
+  const gd = document.querySelector(".plotly-graph-div");
+  if (!gd) return;
+  const box = gd.querySelector(".plot-container") || gd;
+  box.style.position = "relative";
+  const btn = document.createElement("button");
+  btn.id = "forecast-table-toggle";
+  btn.textContent = "Hide table";
+  const holder = document.createElement("div");
+  holder.innerHTML = `{table_markup}`;
+  box.appendChild(btn);
+  box.appendChild(holder.firstElementChild);
+  btn.addEventListener("click", function () {{
+    const tbl = document.getElementById("forecast-table");
+    const hidden = tbl.style.display === "none";
+    tbl.style.display = hidden ? "table" : "none";
+    btn.textContent = hidden ? "Hide table" : "Show table";
+  }});
+}});
+</script>
+"""
+    text = html_path.read_text(encoding="utf-8")
+    if "</body>" in text:
+        text = text.replace("</body>", snippet + "\n</body>", 1)
+    else:
+        text += snippet
+    html_path.write_text(text, encoding="utf-8")
 
 
 def _fmt(value: float, style: str) -> str:
@@ -378,8 +443,12 @@ def render_chart(
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
     html_path = CHARTS_DIR / html_name
     jpg_path = CHARTS_DIR / jpg_name
-    fig.write_html(str(html_path), auto_open=False, config=config)
     fig.write_image(str(jpg_path), width=1600, height=900, scale=2)
+    if show_forecast_table:
+        fig.data = tuple(tr for tr in fig.data if getattr(tr, "type", None) != "table")
+    fig.write_html(str(html_path), auto_open=False, config=config)
+    if show_forecast_table:
+        inject_html_table_controls(html_path, model, value_style)
     logging.info("Wrote %s and %s", html_path, jpg_path)
     return html_path, jpg_path
 
@@ -389,9 +458,9 @@ def write_chart_index() -> Path:
     index_path = CHARTS_DIR / "index.html"
     index_path.write_text(
         """<!doctype html>
-<html lang="en">
+<html lang=\"en\">
 <head>
-  <meta charset="utf-8">
+  <meta charset=\"utf-8\">
   <title>BTC Power Law Charts</title>
   <style>
     body { font-family: Arial, sans-serif; background: #111; color: #eee; max-width: 720px; margin: 3rem auto; padding: 0 1rem; }
@@ -402,8 +471,8 @@ def write_chart_index() -> Path:
 <body>
   <h1>Power Law Probability Channels</h1>
   <ul>
-    <li><a href="btc_usd_chart.html">BTC/USD</a></li>
-    <li><a href="btc_gold_ratio_chart.html">BTCUSD / GOLD</a></li>
+    <li><a href=\"btc_usd_chart.html\">BTC/USD</a></li>
+    <li><a href=\"btc_gold_ratio_chart.html\">BTCUSD / GOLD</a></li>
   </ul>
 </body>
 </html>
