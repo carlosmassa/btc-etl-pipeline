@@ -13,6 +13,10 @@ REQUIRED = [
     "btc_usd_stability.jpg",
     "btc_gold_ratio_stability.html",
     "btc_gold_ratio_stability.jpg",
+    "btc_usd_nlb.html",
+    "btc_usd_nlb.jpg",
+    "btc_usd_nlb_regression.html",
+    "btc_usd_nlb_regression.jpg",
     "index.html",
 ]
 

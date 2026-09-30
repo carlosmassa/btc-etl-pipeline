@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import transform as t
+from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from stability import compute_power_law_stability, render_stability_chart
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -59,6 +60,9 @@ def main() -> None:
         series_label="BTC/GOLD ratio",
         show_extrema_table=True,
     )
+    nlb = compute_nlb(btc)
+    render_nlb_basic(nlb)
+    render_nlb_regression(nlb)
     write_full_index()
 
 
