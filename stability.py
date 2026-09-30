@@ -50,10 +50,10 @@ def inject_extrema_table(html_path, rows, series_label):
     snippet = f"""
 <style>
   .plotly-graph-div {{ position: relative; }}
-  #stability-note {{ position: absolute; left: 50%; bottom: 6.5%; transform: translateX(-50%); z-index: 20; text-align: center; background: none; border: none; padding: 0; font: 12px Arial, sans-serif; color: #b9b9b9; line-height: 1.4; }}
+  #stability-note {{ position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 20; text-align: center; background: none; border: none; padding: 0; font: 12px Arial, sans-serif; color: #b9b9b9; line-height: 1.4; }}
   #stability-note b {{ color: #ddd; font-weight: bold; }}
-  #stability-credit {{ position: absolute; right: 16px; bottom: 6.5%; z-index: 20; font: 12px Arial, sans-serif; color: #ccc; white-space: nowrap; }}
-  #extrema-footer {{ position: absolute; right: 14%; bottom: 13%; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }}
+  #stability-credit {{ position: absolute; right: 12px; bottom: 10px; z-index: 20; font: 12px Arial, sans-serif; color: #fff; white-space: nowrap; }}
+  #extrema-footer {{ position: absolute; right: 18px; bottom: 20%; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }}
   #extrema-table {{ border-collapse: collapse; font: 13px Arial, sans-serif; color: #fff; }}
   #extrema-table th, #extrema-table td {{ padding: 6px 10px; text-align: center; border: 1px solid #111; background: #1C1C1C; }}
   #extrema-table th {{ background: #2A2A2A; font-weight: normal; }}
@@ -103,16 +103,17 @@ def render_stability_chart(stability, *, title, html_name, jpg_name, series_labe
     fig.update_yaxes(title_text="Scale Coefficient (b)", row=1, col=1, showgrid=True, gridcolor="#333")
     fig.update_yaxes(title_text="r²", row=2, col=1, showgrid=True, gridcolor="#333", range=[0.60, 1.02])
     fig.update_xaxes(title_text="Date", row=2, col=1, showgrid=True, gridcolor="#333")
-    fig.update_layout(title=dict(text=f"{title}<br><sup>{date_label}  ·  b = {latest_b:.4f}  ·  r² = {latest_r2:.4f}</sup>", x=0.5, xanchor="center"), template="plotly_dark", showlegend=False, hovermode="closest", margin=dict(t=80, b=140, l=70, r=90), annotations=[dict(xref="paper", yref="paper", x=0.5, y=-0.16, xanchor="center", yanchor="top", align="center", font=dict(family="Arial", size=12, color="#b9b9b9"), showarrow=False, text=(f"Scale coefficient (b) — how fast the {series_label} rises (y = a · x<sup>b</sup>)<br>r² — share of the series explained by the power law")), dict(x=1, y=-0.16, xref="paper", yref="paper", xanchor="right", yanchor="top", text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>', showarrow=False)])
+    fig.update_layout(title=dict(text=f"{title}<br><sup>{date_label}  ·  b = {latest_b:.4f}  ·  r² = {latest_r2:.4f}</sup>", x=0.5, xanchor="center"), template="plotly_dark", showlegend=False, hovermode="closest", margin=dict(t=80, b=170, l=70, r=90), annotations=[dict(xref="paper", yref="paper", x=0.5, y=-0.22, xanchor="center", yanchor="top", align="center", font=dict(family="Arial", size=12, color="#b9b9b9"), showarrow=False, text=(f"Scale coefficient (b) — how fast the {series_label} rises (y = a · x<sup>b</sup>)<br>r² — share of the series explained by the power law")), dict(x=1, y=-0.12, xref="paper", yref="paper", xanchor="right", yanchor="auto", text='Chart by: <a href="https://x.com/CarlesMassa" target="_blank" style="color: white;">@CarlesMassa</a>', showarrow=False)])
     extrema = _extrema_rows(stability) if show_extrema_table else []
     if show_extrema_table:
-        fig.add_trace(go.Table(header=dict(values=["", "Max", "Date", "Min", "Date"], fill_color="#2A2A2A", font=dict(family="Arial", color="white", size=11), align="center", height=24), cells=dict(values=list(map(list, zip(*extrema))), fill_color="#1C1C1C", font=dict(family="Arial", color="white", size=11), align="center", height=22), domain=dict(x=[0.48, 0.86], y=[0.01, 0.155])))
+        fig.add_trace(go.Table(header=dict(values=["", "Max", "Date", "Min", "Date"], fill_color="#2A2A2A", font=dict(family="Arial", color="white", size=11), align="center", height=24), cells=dict(values=list(map(list, zip(*extrema))), fill_color="#1C1C1C", font=dict(family="Arial", color="white", size=11), align="center", height=22), domain=dict(x=[0.70, 0.995], y=[0.06, 0.20])))
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
     html_path = CHARTS_DIR / html_name
     jpg_path = CHARTS_DIR / jpg_name
     fig.write_image(str(jpg_path), width=1600, height=1100, scale=2)
     if show_extrema_table:
         fig.data = tuple(tr for tr in fig.data if getattr(tr, "type", None) != "table")
+    fig.update_layout(annotations=[])
     fig.write_html(str(html_path), auto_open=False)
     if show_extrema_table:
         inject_extrema_table(html_path, extrema, series_label)
