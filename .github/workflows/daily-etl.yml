@@ -1,7 +1,7 @@
 name: Daily BTC/USD ETL Pipeline
 on:
   schedule:
-    - cron: "0 4 * * *" # Runs daily at 4:00 AM UTC (default branch only)
+    - cron: "0 4 * * *"
   workflow_dispatch:
     inputs:
       publish_to_production:
@@ -71,6 +71,10 @@ jobs:
             charts/btc_usd_stability.html
             charts/btc_gold_ratio_stability.jpg
             charts/btc_gold_ratio_stability.html
+            charts/btc_usd_nlb.jpg
+            charts/btc_usd_nlb.html
+            charts/btc_usd_nlb_regression.jpg
+            charts/btc_usd_nlb_regression.html
             charts/index.html
           if-no-files-found: error
           retention-days: 7
@@ -87,6 +91,8 @@ jobs:
           mv charts/btc_gold_ratio_chart.html charts/btc_gold_ratio_chart.jpg temp/
           mv charts/btc_usd_stability.html charts/btc_usd_stability.jpg temp/
           mv charts/btc_gold_ratio_stability.html charts/btc_gold_ratio_stability.jpg temp/
+          mv charts/btc_usd_nlb.html charts/btc_usd_nlb.jpg temp/
+          mv charts/btc_usd_nlb_regression.html charts/btc_usd_nlb_regression.jpg temp/
           mv charts/index.html temp/
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             git fetch origin gh-pages
@@ -101,6 +107,8 @@ jobs:
                   charts/btc_gold_ratio_chart.html charts/btc_gold_ratio_chart.jpg \
                   charts/btc_usd_stability.html charts/btc_usd_stability.jpg \
                   charts/btc_gold_ratio_stability.html charts/btc_gold_ratio_stability.jpg \
+                  charts/btc_usd_nlb.html charts/btc_usd_nlb.jpg \
+                  charts/btc_usd_nlb_regression.html charts/btc_usd_nlb_regression.jpg \
                   charts/index.html
-          git commit -m "Update BTC and BTC/Gold charts for $(date +%Y-%m-%d)" || echo "No changes to commit"
+          git commit -m "Update BTC charts for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
