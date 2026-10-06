@@ -48,6 +48,14 @@ def main() -> None:
         series_label="BTCUSD",
     )
 
+    render_health_chart(
+        compute_model_health(btc, floor_q=0.001),
+        title="BTCUSD Power Law Health — 0.1% floor",
+        html_name="btc_usd_health_q001.html",
+        jpg_name="btc_usd_health_q001.jpg",
+        series_label="BTCUSD",
+    )
+
     ratio = t.clean_btc_gold_ratio()
     t.render_chart(
         t.fit_power_law(ratio, series_label="BTC/Gold"),
@@ -75,6 +83,14 @@ def main() -> None:
         title="BTC/GOLD Power Law Health",
         html_name="btc_gold_ratio_health.html",
         jpg_name="btc_gold_ratio_health.jpg",
+        series_label="BTC/GOLD",
+    )
+
+    render_health_chart(
+        compute_model_health(ratio, floor_q=0.001),
+        title="BTC/GOLD Power Law Health — 0.1% floor",
+        html_name="btc_gold_ratio_health_q001.html",
+        jpg_name="btc_gold_ratio_health_q001.jpg",
         series_label="BTC/GOLD",
     )
     nlb = compute_nlb(btc)

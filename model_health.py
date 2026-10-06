@@ -66,16 +66,21 @@ def _fgls_ar1(x, y, resid):
     return float(beta[1]), phi, innov_sigma, half_life
 
 
-def _quantile_slope(x, y, q=FLOOR_Q):
+def _floor_label(q):
+    pct = q * 100
+    return f"{pct:.1f}%" if pct < 1 else f"{pct:.0f}%"
+
+
+def _quantile_slope(x, y, q):
     design = sm.add_constant(x)
-    fit = sm.QuantReg(y, design).fit(q=q, max_iter=2000)
+    fit = sm.QuantReg(y, design).fit(q=q, max_iter=5000)
     params = fit.params
     intercept = float(params.iloc[0] if hasattr(params, "iloc") else params[0])
     slope = float(params.iloc[1] if hasattr(params, "iloc") else params[1])
     return intercept, slope
 
 
-def compute_model_health(df, min_points=MIN_POINTS, step=STEP_DAYS, roll_days=ROLL_DAYS, horizon=HORIZON):
+def compute_model_health(df, min_points=MIN_POINTS, step=STEP_DAYS, roll_days=ROLL_DAYS, horizon=HORIZON, floor_q=FLOOR_Q):
     work = df.dropna(subset=["Date", "Value", "ind"]).sort_values("Date").reset_index(drop=True)
     x = np.log(work["ind"].astype(float).to_numpy())
     y = np.log(work["Value"].astype(float).to_numpy())
@@ -91,7 +96,7 @@ def compute_model_health(df, min_points=MIN_POINTS, step=STEP_DAYS, roll_days=RO
         fgls_slope, phi, innov_sigma, half_life = _fgls_ar1(x_fit, y_fit, resid)
         roll_start = max(0, end - roll_days)
         _, roll_slope, roll_se, _ = _ols_hac(x[roll_start:end], y[roll_start:end])
-        q_intercept, q_slope = _quantile_slope(x_fit, y_fit, FLOOR_Q)
+        q_intercept, q_slope = _quantile_slope(x_fit, y_fit, floor_q)
 
         future = slice(end, end + horizon)
         x_fut, y_fut = x[future], y[future]
@@ -104,8 +109,8 @@ def compute_model_health(df, min_points=MIN_POINTS, step=STEP_DAYS, roll_days=RO
 
         mean_loss = _pinball(y_fut, mean_pred, 0.50)
         naive_mean_loss = _pinball(y_fut, naive_mean, 0.50)
-        floor_loss = _pinball(y_fut, floor_pred, FLOOR_Q)
-        naive_floor_loss = _pinball(y_fut, naive_floor, FLOOR_Q)
+        floor_loss = _pinball(y_fut, floor_pred, floor_q)
+        naive_floor_loss = _pinball(y_fut, naive_floor, floor_q)
         breaches = y_fut < floor_pred
         breach_rate = float(np.mean(breaches))
         # longest run of closes under the claimed floor, inside this horizon
@@ -126,6 +131,7 @@ def compute_model_health(df, min_points=MIN_POINTS, step=STEP_DAYS, roll_days=RO
             "b_roll": roll_slope,
             "b_roll_se": roll_se,
             "b_floor": q_slope,
+            "floor_q": floor_q,
             "phi": phi,
             "innov_sigma": innov_sigma,
             "half_life": half_life,
@@ -170,6 +176,7 @@ def _credit():
 
 def render_health_chart(health, *, title, html_name, jpg_name, series_label):
     latest = health.iloc[-1]
+    floor_label = _floor_label(float(latest.get("floor_q", FLOOR_Q)))
     date_label = pd.Timestamp(latest["Date"]).strftime("%d %B %Y")
     fig = make_subplots(
         rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.07,
@@ -207,9 +214,9 @@ def render_health_chart(health, *, title, html_name, jpg_name, series_label):
         hovertemplate="Date=%{x|%d %b %Y}<br>4y b=%{y:.3f}<extra></extra>",
     ), row=1, col=1)
     fig.add_trace(go.Scatter(
-        x=health["Date"], y=health["b_floor"], mode="lines", name="Expanding 1% floor b",
+        x=health["Date"], y=health["b_floor"], mode="lines", name=f"Expanding {floor_label} floor b",
         line=dict(color="#00FF7F", width=1.8),
-        hovertemplate="Date=%{x|%d %b %Y}<br>1% b=%{y:.3f}<extra></extra>",
+        hovertemplate="Date=%{x|%d %b %Y}<br>" + floor_label + " b=%{y:.3f}<extra></extra>",
     ), row=1, col=1)
 
     fig.add_trace(go.Scatter(
@@ -230,7 +237,7 @@ def render_health_chart(health, *, title, html_name, jpg_name, series_label):
     ), row=2, col=1, secondary_y=False)
 
     fig.add_trace(go.Scatter(
-        x=health["Date"], y=health["floor_ratio_1y"], mode="lines", name="1% pinball / naive (1y)",
+        x=health["Date"], y=health["floor_ratio_1y"], mode="lines", name=f"{floor_label} pinball / naive (1y)",
         line=dict(color="#00FF7F", width=2),
         hovertemplate="Date=%{x|%d %b %Y}<br>floor pinball ratio=%{y:.2f}<extra></extra>",
     ), row=3, col=1, secondary_y=False)
@@ -241,7 +248,7 @@ def render_health_chart(health, *, title, html_name, jpg_name, series_label):
         hovertemplate="Date=%{x|%d %b %Y}<br>50% pinball ratio=%{y:.2f}<extra></extra>",
     ), row=3, col=1, secondary_y=False)
     fig.add_trace(go.Scatter(
-        x=health["Date"], y=health["breach_rate_1y"], mode="lines", name="1% floor breach rate (1y)",
+        x=health["Date"], y=health["breach_rate_1y"], mode="lines", name=f"{floor_label} floor breach rate (1y)",
         line=dict(color="#FF4500", width=1.5),
         hovertemplate="Date=%{x|%d %b %Y}<br>breach rate=%{y:.1%}<extra></extra>",
     ), row=3, col=1, secondary_y=True)
@@ -273,7 +280,7 @@ def render_health_chart(health, *, title, html_name, jpg_name, series_label):
             text=(
                 f"{title}<br><sup>{date_label}  ·  b = {latest['b']:.3f} "
                 f"[{latest['b_lo']:.3f}, {latest['b_hi']:.3f}]  ·  "
-                f"1% b = {latest['b_floor']:.3f}  ·  "
+                f"{floor_label} b = {latest['b_floor']:.3f}  ·  "
                 f"floor pinball ratio = {latest['floor_ratio_1y']:.2f}</sup>"
             ),
             x=0.5, xanchor="center",

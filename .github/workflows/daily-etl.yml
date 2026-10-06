@@ -75,6 +75,10 @@ jobs:
             charts/btc_usd_health.html
             charts/btc_gold_ratio_health.jpg
             charts/btc_gold_ratio_health.html
+            charts/btc_usd_health_q001.jpg
+            charts/btc_usd_health_q001.html
+            charts/btc_gold_ratio_health_q001.jpg
+            charts/btc_gold_ratio_health_q001.html
             charts/btc_usd_nlb.jpg
             charts/btc_usd_nlb.html
             charts/btc_usd_nlb_regression.jpg
@@ -97,6 +101,8 @@ jobs:
           mv charts/btc_gold_ratio_stability.html charts/btc_gold_ratio_stability.jpg temp/
           mv charts/btc_usd_health.html charts/btc_usd_health.jpg temp/
           mv charts/btc_gold_ratio_health.html charts/btc_gold_ratio_health.jpg temp/
+          mv charts/btc_usd_health_q001.html charts/btc_usd_health_q001.jpg temp/
+          mv charts/btc_gold_ratio_health_q001.html charts/btc_gold_ratio_health_q001.jpg temp/
           mv charts/btc_usd_nlb.html charts/btc_usd_nlb.jpg temp/
           mv charts/btc_usd_nlb_regression.html charts/btc_usd_nlb_regression.jpg temp/
           mv charts/index.html temp/
@@ -115,6 +121,8 @@ jobs:
                   charts/btc_gold_ratio_stability.html charts/btc_gold_ratio_stability.jpg \
                   charts/btc_usd_health.html charts/btc_usd_health.jpg \
                   charts/btc_gold_ratio_health.html charts/btc_gold_ratio_health.jpg \
+                  charts/btc_usd_health_q001.html charts/btc_usd_health_q001.jpg \
+                  charts/btc_gold_ratio_health_q001.html charts/btc_gold_ratio_health_q001.jpg \
                   charts/btc_usd_nlb.html charts/btc_usd_nlb.jpg \
                   charts/btc_usd_nlb_regression.html charts/btc_usd_nlb_regression.jpg \
                   charts/index.html
