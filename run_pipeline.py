@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import transform as t
+from model_health import compute_model_health, render_health_chart
 from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from stability import compute_power_law_stability, render_stability_chart
 
@@ -39,6 +40,14 @@ def main() -> None:
         show_extrema_table=True,
     )
 
+    render_health_chart(
+        compute_model_health(btc),
+        title="BTCUSD Power Law Health",
+        html_name="btc_usd_health.html",
+        jpg_name="btc_usd_health.jpg",
+        series_label="BTCUSD",
+    )
+
     ratio = t.clean_btc_gold_ratio()
     t.render_chart(
         t.fit_power_law(ratio, series_label="BTC/Gold"),
@@ -59,6 +68,14 @@ def main() -> None:
         jpg_name="btc_gold_ratio_stability.jpg",
         series_label="BTC/GOLD ratio",
         show_extrema_table=True,
+    )
+
+    render_health_chart(
+        compute_model_health(ratio),
+        title="BTC/GOLD Power Law Health",
+        html_name="btc_gold_ratio_health.html",
+        jpg_name="btc_gold_ratio_health.jpg",
+        series_label="BTC/GOLD",
     )
     nlb = compute_nlb(btc)
     render_nlb_basic(nlb)

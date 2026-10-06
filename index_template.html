@@ -77,7 +77,7 @@
     <header class="hero">
       <p class="kicker">Daily research charts</p>
       <h1>BTC Power Law Charts</h1>
-      <p class="lede">Daily power-law views of Bitcoin: quantile channels in dollars and in gold, the never-look-back floor, and the slope and fit-quality series that show how stable those laws have been over time.</p>
+      <p class="lede">Daily power-law views of Bitcoin: quantile channels in dollars and in gold, the never-look-back floor, and health checks that score the slope and the out-of-sample floor without using r².</p>
     </header>
 
     <h2>Probability channels</h2>
@@ -96,6 +96,27 @@
         <div class="links">
           <a class="btn" href="btc_gold_ratio_chart.html">Open HTML</a>
           <a class="btn ghost" href="btc_gold_ratio_chart.jpg">JPG</a>
+        </div>
+      </article>
+    </div>
+
+
+    <h2>Model health — robust slope and walk-forward score</h2>
+    <div class="grid">
+      <article class="card btc">
+        <h3>BTCUSD health</h3>
+        <p>Expanding and 4-year exponents with Newey–West bands, the residual process after AR(1), and 30-day pinball loss against a persisted-deviation benchmark. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_usd_health.html">Open HTML</a>
+          <a class="btn ghost" href="btc_usd_health.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card gold">
+        <h3>BTC/GOLD health</h3>
+        <p>The same check for ounces of gold per bitcoin: HAC exponent, 1% floor slope, and whether the floor still beats a naïve forecast.</p>
+        <div class="links">
+          <a class="btn" href="btc_gold_ratio_health.html">Open HTML</a>
+          <a class="btn ghost" href="btc_gold_ratio_health.jpg">JPG</a>
         </div>
       </article>
     </div>
