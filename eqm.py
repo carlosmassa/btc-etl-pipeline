@@ -323,6 +323,8 @@ def render_ribbon_price(model, *, html_name, jpg_name, months=None):
     risk = model["risk"].iloc[-1]
     regime = model["regime"].iloc[-1]
     since = _runs(model["regime"])[-1][0]
+    since_px = float(model["close"].loc[since])
+    since_ret = latest / since_px - 1 if since_px else np.nan
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=idx, y=hi_p, mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
     fig.add_trace(go.Scatter(
@@ -360,7 +362,7 @@ def render_ribbon_price(model, *, html_name, jpg_name, months=None):
             text=(
                 "BTCUSD EQM Mayer Ribbon — price<br><sup>"
                 f"{end:%d %B %Y}  ·  ${latest:,.0f}  ·  risk {risk:.1f}%  ·  "
-                f"{regime.upper()} since {since:%d %b %Y}  ·  EMA150 price filter on</sup>"
+                f"{regime.upper()} since {since:%d %b %Y} ({since_ret:+.1%})  ·  EMA150 price filter on</sup>"
             ),
             x=0.5, xanchor="center",
         ),
