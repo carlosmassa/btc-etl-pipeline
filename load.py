@@ -31,6 +31,8 @@ REQUIRED = [
     "btc_eqm_rainbow.jpg",
     "btc_eqm_rainbow_zoom.html",
     "btc_eqm_rainbow_zoom.jpg",
+    "btc_eqm_risk.html",
+    "btc_eqm_risk.jpg",
     "btc_usd_nlb.html",
     "btc_usd_nlb.jpg",
     "btc_usd_nlb_regression.html",

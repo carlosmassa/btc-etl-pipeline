@@ -433,7 +433,34 @@ def render_rainbow(rainbow, *, html_name, jpg_name, start="2012-01-01"):
     return _write(fig, html_name, jpg_name, height=900)
 
 
-def render_rainbow_zoom(rainbow, *, html_name, jpg_name, months=12):
+def render_rainbow_risk(rainbow, *, html_name, jpg_name):
+    df = rainbow.dropna(subset=["risk"]).copy()
+    last = df.iloc[-1]
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df.index, y=df["risk"] * 100, mode="lines", name="EQM risk",
+        line=dict(color="#7dd3fc", width=1.6),
+        customdata=df["close"],
+        hovertemplate=(
+            "Date=%{x|%d %b %Y}<br>risk=%{y:.1f}%<br>price=$%{customdata:,.0f}<extra></extra>"
+        ),
+    ))
+    fig.update_yaxes(title_text="EQM risk (%)", range=[0, 100], gridcolor="#333")
+    fig.update_xaxes(title_text="Date", gridcolor="#333")
+    fig.update_layout(
+        title=dict(
+            text=(
+                "BTCUSD EQM Risk — full history<br><sup>"
+                f"{df.index[-1]:%d %B %Y}  ·  risk {last['risk'] * 100:.1f}%  ·  "
+                f"${last['close']:,.0f}</sup>"
+            ),
+            x=0.5, xanchor="center",
+        ),
+        template="plotly_dark", hovermode="x unified",
+        legend=dict(orientation="h", y=-0.14, x=0),
+        margin=dict(t=90, b=80, l=70, r=40), annotations=[_credit()],
+    )
+    return _write(fig, html_name, jpg_name, height=700)
     end = rainbow.index[-1]
     df = rainbow.loc[end - pd.DateOffset(months=months):].dropna(subset=["q0.5"])
     last = rainbow.dropna(subset=["risk"]).iloc[-1]
