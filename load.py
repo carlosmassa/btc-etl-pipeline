@@ -23,6 +23,8 @@ REQUIRED = [
     "btc_gold_ratio_health_q001.jpg",
     "btc_eqm_ribbon.html",
     "btc_eqm_ribbon.jpg",
+    "btc_eqm_report.html",
+    "btc_eqm_report.jpg",
     "btc_eqm_trades.html",
     "btc_eqm_trades.jpg",
     "btc_eqm_backtest.html",

@@ -301,13 +301,123 @@ def render_ribbon(model, *, html_name, jpg_name, months=None):
             ),
             x=0.5, xanchor="center",
         ),
-        template="plotly_dark", hovermode="x unified",
+        template="plotly_dark", hovermode="closest",
         legend=dict(orientation="h", y=-0.14, x=0),
         margin=dict(t=90, b=90, l=70, r=40),
         shapes=_regime_shapes(idx, model["regime"], "paper"),
         annotations=[_credit()],
     )
     return _write(fig, html_name, jpg_name, height=1000)
+
+
+ETF_DATE = pd.Timestamp("2024-01-11")
+CYCLE_BOTTOMS = [
+    pd.Timestamp("2015-01-14"),
+    pd.Timestamp("2018-12-15"),
+    pd.Timestamp("2022-11-21"),
+]
+
+
+def _kpis(bt, trades):
+    eq, rets = bt["equity"], bt["strategy"]
+    years = max((eq.index[-1] - eq.index[0]).days / 365.25, 1 / 365.25)
+    cagr = (eq.iloc[-1] / eq.iloc[0]) ** (1 / years) - 1
+    vol = rets.std() * np.sqrt(365)
+    down = rets[rets < 0].std() * np.sqrt(365)
+    max_dd = (eq / eq.cummax() - 1).min()
+    closed = trades[~trades["open"]] if len(trades) else trades
+    wins = closed[closed["ret"] > 0] if len(closed) else closed
+    losses = closed[closed["ret"] <= 0] if len(closed) else closed
+    avg_win = float(wins["ret"].mean()) if len(wins) else np.nan
+    avg_loss = float(losses["ret"].mean()) if len(losses) else np.nan
+    return {
+        "CAGR": cagr,
+        "Sharpe": rets.mean() * 365 / vol if vol else np.nan,
+        "Sortino": rets.mean() * 365 / down if down else np.nan,
+        "Calmar": cagr / abs(max_dd) if max_dd else np.nan,
+        "Max DD": max_dd,
+        "Win rate": float((closed["ret"] > 0).mean()) if len(closed) else np.nan,
+        "R:R": abs(avg_win / avg_loss) if avg_loss and avg_loss != 0 else np.nan,
+        "Trades": int(len(closed)),
+        "Exposure": float(bt["position"].mean()),
+    }
+
+
+def render_ribbon_report(model, *, html_name, jpg_name):
+    tl = trade_log(model)
+    bt = backtest(model)
+    periods = [("Full history", bt.index[0], bt.index[-1])]
+    bottoms = [d for d in CYCLE_BOTTOMS if d >= bt.index[0]]
+    edges = [bt.index[0], *bottoms, bt.index[-1]]
+    for i in range(len(edges) - 1):
+        periods.append((f"Cycle {edges[i]:%b %Y}–{edges[i + 1]:%b %Y}", edges[i], edges[i + 1]))
+    periods.append(("Since BTC ETF", ETF_DATE, bt.index[-1]))
+
+    kpi_rows = []
+    for name, start, end in periods:
+        window = bt.loc[start:end]
+        if len(window) < 30:
+            continue
+        trades = tl[(tl["entry"] >= start) & (tl["entry"] <= end)] if len(tl) else tl
+        row = _kpis(window, trades)
+        row["Period"] = name
+        kpi_rows.append(row)
+    kpis = pd.DataFrame(kpi_rows)
+
+    def pct(v):
+        return "—" if pd.isna(v) else f"{v:.1%}"
+
+    def num(v):
+        return "—" if pd.isna(v) else f"{v:.2f}"
+
+    trades = tl.sort_values("entry").copy() if len(tl) else tl
+    fig = make_subplots(
+        rows=2, cols=1, vertical_spacing=0.08, row_heights=[0.42, 0.58],
+        specs=[[{"type": "table"}], [{"type": "table"}]],
+        subplot_titles=("EQM Mayer KPIs", "EQM Mayer trades"),
+    )
+    fig.add_trace(go.Table(
+        header=dict(values=["Period", "CAGR", "Sharpe", "Sortino", "Calmar", "Max DD", "Win rate", "R:R", "Trades", "Exposure"],
+                    fill_color="#1b2129", font=dict(color="white", size=12), align="center"),
+        cells=dict(
+            values=[
+                kpis["Period"], kpis["CAGR"].map(pct), kpis["Sharpe"].map(num),
+                kpis["Sortino"].map(num), kpis["Calmar"].map(num), kpis["Max DD"].map(pct),
+                kpis["Win rate"].map(pct), kpis["R:R"].map(num), kpis["Trades"], kpis["Exposure"].map(pct),
+            ],
+            fill_color="#14181e", font=dict(color="#e8edf2", size=11), align="center", height=26,
+        ),
+    ), row=1, col=1)
+    if len(trades):
+        fig.add_trace(go.Table(
+            header=dict(
+                values=["Entry", "Exit", "Days", "Gain/loss", "Entry price", "Exit price", "Risk in", "Status"],
+                fill_color="#1b2129", font=dict(color="white", size=12), align="center",
+            ),
+            cells=dict(
+                values=[
+                    trades["entry"].dt.strftime("%d %b %Y"),
+                    trades["exit"].dt.strftime("%d %b %Y"),
+                    trades["days"],
+                    trades["ret"].map(lambda v: f"{v:+.1%}"),
+                    trades["entry_px"].map(lambda v: f"${v:,.0f}"),
+                    trades["exit_px"].map(lambda v: f"${v:,.0f}"),
+                    trades["risk_in"].map(lambda v: f"{v:.0f}%"),
+                    trades["open"].map(lambda v: "Open" if v else "Closed"),
+                ],
+                fill_color=[["#14181e" if not o else "#1f2a22" for o in trades["open"]]],
+                font=dict(color="#e8edf2", size=11), align="center", height=24,
+            ),
+        ), row=2, col=1)
+    fig.update_layout(
+        title=dict(
+            text="BTCUSD EQM Mayer — trades and KPIs<br><sup>Cycles are bottom to bottom · ETF era from 11 Jan 2024 · 1-day lag, 10 bps per switch</sup>",
+            x=0.5, xanchor="center",
+        ),
+        template="plotly_dark", margin=dict(t=80, b=40, l=20, r=20),
+        annotations=[_credit()],
+    )
+    return _write(fig, html_name, jpg_name, width=1400, height=1100)
 
 
 def render_trades(model, *, html_name, jpg_name, since="2015-01-01"):
@@ -344,7 +454,7 @@ def render_trades(model, *, html_name, jpg_name, since="2015-01-01"):
             text="BTCUSD EQM Ribbon — long trades<br><sup>Bubble size is the trade return · EMA150 price filter on · close-only risk</sup>",
             x=0.5, xanchor="center",
         ),
-        template="plotly_dark",
+        template="plotly_dark", hovermode="closest",
         xaxis_title="Trade duration (days)", yaxis_title="EQM risk at entry (%)",
         legend=dict(orientation="h", y=-0.16, x=0),
         margin=dict(t=90, b=90, l=70, r=40),
@@ -379,7 +489,7 @@ def render_backtest(model, *, html_name, jpg_name):
             ),
             x=0.5, xanchor="center",
         ),
-        template="plotly_dark", legend=dict(orientation="h", y=-0.12, x=0),
+        template="plotly_dark", hovermode="closest", legend=dict(orientation="h", y=-0.12, x=0),
         margin=dict(t=90, b=80, l=70, r=40), annotations=[_credit()],
     )
     return _write(fig, html_name, jpg_name, height=900)
@@ -459,7 +569,7 @@ def render_rainbow_risk(rainbow, *, html_name, jpg_name):
             ),
             x=0.5, xanchor="center",
         ),
-        template="plotly_dark", hovermode="x unified",
+        template="plotly_dark", hovermode="closest",
         legend=dict(orientation="h", y=-0.14, x=0),
         margin=dict(t=90, b=80, l=70, r=40), annotations=[_credit()],
     )
