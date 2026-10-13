@@ -213,9 +213,12 @@ def _regime_shapes(index, regime, yref):
     return shapes
 
 
-def render_ribbon(model, *, html_name, jpg_name, months=14):
+def render_ribbon(model, *, html_name, jpg_name, months=None):
     end = model["close"].index[-1]
-    start = end - pd.DateOffset(months=months)
+    if months is None:
+        start = model["close"].index[max(SMA_WINDOW, RANK_WINDOW) - 1]
+    else:
+        start = end - pd.DateOffset(months=months)
     idx = model["close"].index[model["close"].index >= start]
     lo_p = _map_band(model, model["lo"].loc[idx])
     hi_p = _map_band(model, model["hi"].loc[idx])
