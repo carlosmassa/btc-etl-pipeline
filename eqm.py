@@ -384,24 +384,27 @@ def render_backtest(model, *, html_name, jpg_name):
 
 def _draw_rainbow(fig, df, row):
     for q0, q1, color in RAINBOW_BANDS:
+        label = f"{q0:.1%}–{q1:.1%}"
         fig.add_trace(go.Scatter(
             x=df.index, y=df[f"q{q1:g}"], mode="lines", line=dict(width=0),
-            showlegend=False, hoverinfo="skip",
+            name=f"{q1:.1%} band", showlegend=False,
+            hovertemplate=f"{q1:.1%} band<br>%{{x|%d %b %Y}}<br>$%{{y:,.0f}}<extra></extra>",
         ), row=row, col=1)
         fig.add_trace(go.Scatter(
             x=df.index, y=df[f"q{q0:g}"], mode="lines", line=dict(width=0),
-            fill="tonexty", fillcolor=color, name=f"{q0:.1%}–{q1:.1%}",
-            hoverinfo="skip", opacity=0.85,
+            fill="tonexty", fillcolor=color, name=label, opacity=0.85,
+            hovertemplate=f"{q0:.1%} band<br>%{{x|%d %b %Y}}<br>$%{{y:,.0f}}<extra></extra>",
         ), row=row, col=1)
     fig.add_trace(go.Scatter(
         x=df.index, y=df["median"], mode="lines", name="50% band",
         line=dict(color="white", width=1.4),
+        hovertemplate="50% band<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
     ), row=row, col=1)
     fig.add_trace(go.Scatter(
         x=df.index, y=df["close"], mode="lines", name="Price",
         line=dict(color="#f8fafc", width=1.6),
         customdata=df["risk"] * 100,
-        hovertemplate="Date=%{x|%d %b %Y}<br>price=$%{y:,.0f}<br>risk=%{customdata:.1f}%<extra></extra>",
+        hovertemplate="Price<br>%{x|%d %b %Y}<br>$%{y:,.0f}<br>risk=%{customdata:.1f}%<extra></extra>",
     ), row=row, col=1)
 
 
@@ -424,7 +427,7 @@ def render_rainbow(rainbow, *, html_name, jpg_name, start="2012-01-01"):
             ),
             x=0.5, xanchor="center",
         ),
-        template="plotly_dark", legend=dict(orientation="h", y=-0.16, x=0),
+        template="plotly_dark", hovermode="x unified", legend=dict(orientation="h", y=-0.16, x=0),
         margin=dict(t=100, b=90, l=70, r=40), annotations=[_credit()],
     )
     return _write(fig, html_name, jpg_name, height=900)
@@ -451,7 +454,7 @@ def render_rainbow_zoom(rainbow, *, html_name, jpg_name, months=12):
             ),
             x=0.5, xanchor="center",
         ),
-        template="plotly_dark", legend=dict(orientation="h", y=-0.14, x=0),
+        template="plotly_dark", hovermode="x unified", legend=dict(orientation="h", y=-0.14, x=0),
         margin=dict(t=90, b=90, l=70, r=40), annotations=[_credit()],
     )
     return _write(fig, html_name, jpg_name, height=1000)
