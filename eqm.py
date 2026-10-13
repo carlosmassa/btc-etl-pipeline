@@ -234,7 +234,36 @@ def _switches(model, idx):
     return pd.DataFrame(rows)
 
 
-def render_ribbon(model, *, html_name, jpg_name, months=None):
+def _ema_filter(close):
+    ema = close.ewm(span=PF_SPAN, adjust=True, min_periods=1).mean()
+    log_ema = np.log(ema)
+    slope = log_ema.diff(PF_LOOKBACK)
+    daily = log_ema.diff(1)
+    last_slope = float(slope.iloc[-1])
+    last_daily = float(daily.iloc[-1])
+    if last_daily == 0 or np.sign(last_daily) == np.sign(last_slope):
+        days = None
+    else:
+        days = abs(last_slope / last_daily)
+    return {
+        "ema": ema,
+        "slope": slope,
+        "daily": daily,
+        "last_slope": last_slope,
+        "last_daily": last_daily,
+        "days": days,
+        "rising": last_slope > 0,
+    }
+
+
+def _filter_note(state):
+    direction = "rising" if state["rising"] else "falling"
+    rate = state["last_daily"] * 100
+    if state["days"] is None:
+        timing = "not heading toward a flip"
+    else:
+        timing = f"filter flips in ~{state['days']:.0f} days at this rate"
+    return f"EMA150 {direction} {rate:+.2f}%/day · {timing}"
     end = model["close"].index[-1]
     if months is None:
         start = model["close"].index[max(SMA_WINDOW, RANK_WINDOW) - 1]
@@ -247,6 +276,7 @@ def render_ribbon(model, *, html_name, jpg_name, months=None):
     risk = model["risk"].iloc[-1]
     regime = model["regime"].iloc[-1]
     since = _runs(model["regime"])[-1][0]
+    filt = _ema_filter(model["close"])
     fig = make_subplots(
         rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08,
         subplot_titles=("EQM ribbon on risk", "EQM ribbon mapped onto price"),
@@ -297,7 +327,7 @@ def render_ribbon(model, *, html_name, jpg_name, months=None):
             text=(
                 "BTCUSD EQM Mayer Ribbon<br><sup>"
                 f"{end:%d %B %Y}  ·  ${latest:,.0f}  ·  risk {risk:.1f}%  ·  "
-                f"{regime.upper()} since {since:%d %b %Y}  ·  EMA150 price filter on</sup>"
+                f"{regime.upper()} since {since:%d %b %Y}  ·  {_filter_note(filt)}</sup>"
             ),
             x=0.5, xanchor="center",
         ),
@@ -325,18 +355,19 @@ def render_ribbon_price(model, *, html_name, jpg_name, months=None):
     since = _runs(model["regime"])[-1][0]
     since_px = float(model["close"].loc[since])
     since_ret = latest / since_px - 1 if since_px else np.nan
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=idx, y=hi_p, mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
+    filt = _ema_filter(model["close"])
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.78, 0.22], vertical_spacing=0.06)
+    fig.add_trace(go.Scatter(x=idx, y=hi_p, mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"), row=1, col=1)
     fig.add_trace(go.Scatter(
         x=idx, y=lo_p, mode="lines", line=dict(width=0), fill="tonexty",
         fillcolor="rgba(224,195,106,0.22)", name="Ribbon band", hoverinfo="skip",
-    ))
+    ), row=1, col=1)
     fig.add_trace(go.Scatter(
         x=idx, y=model["close"].loc[idx], mode="lines", name="Price",
         line=dict(color="#f5a24a", width=1.7),
         customdata=model["risk"].loc[idx],
         hovertemplate="Date=%{x|%d %b %Y}<br>price=$%{y:,.0f}<br>risk=%{customdata:.1f}%<extra></extra>",
-    ))
+    ), row=1, col=1)
     switches = _switches(model, idx)
     if len(switches):
         longs = switches[switches["to"] == "long"]
@@ -347,32 +378,40 @@ def render_ribbon_price(model, *, html_name, jpg_name, months=None):
             text=[f"${p:,.0f}" for p in longs["price"]], textposition="top center",
             textfont=dict(size=10, color="#34d399"),
             hovertemplate="Switch to long<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
-        ))
+        ), row=1, col=1)
         fig.add_trace(go.Scatter(
             x=cash["date"], y=cash["price"], mode="markers+text", name="Switch to cash",
             marker=dict(color="#f87171", size=8, symbol="triangle-down", line=dict(color="#450a0a", width=1)),
             text=[f"${p:,.0f}" for p in cash["price"]], textposition="bottom center",
             textfont=dict(size=10, color="#f87171"),
             hovertemplate="Switch to cash<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
-        ))
-    fig.update_yaxes(title_text="Price (USD)", type="log", gridcolor="#333")
-    fig.update_xaxes(title_text="Date", gridcolor="#333")
+        ), row=1, col=1)
+    slope = filt["slope"].loc[idx] * 100
+    fig.add_trace(go.Scatter(
+        x=idx, y=slope, mode="lines", name="EMA150 10-day slope",
+        line=dict(color="#7dd3fc", width=1.4),
+        hovertemplate="Date=%{x|%d %b %Y}<br>EMA150 10d slope=%{y:+.2f}%<extra></extra>",
+    ), row=2, col=1)
+    fig.add_hline(y=0, line=dict(color="#666", width=1, dash="dot"), row=2, col=1)
+    fig.update_yaxes(title_text="Price (USD)", type="log", gridcolor="#333", row=1, col=1)
+    fig.update_yaxes(title_text="EMA150 slope (%)", gridcolor="#333", row=2, col=1)
+    fig.update_xaxes(title_text="Date", gridcolor="#333", row=2, col=1)
     fig.update_layout(
         title=dict(
             text=(
                 "BTCUSD EQM Mayer Ribbon — price<br><sup>"
                 f"{end:%d %B %Y}  ·  ${latest:,.0f}  ·  risk {risk:.1f}%  ·  "
-                f"{regime.upper()} since {since:%d %b %Y} ({since_ret:+.1%})  ·  EMA150 price filter on</sup>"
+                f"{regime.upper()} since {since:%d %b %Y} ({since_ret:+.1%})  ·  {_filter_note(filt)}</sup>"
             ),
             x=0.5, xanchor="center",
         ),
         template="plotly_dark", hovermode="closest",
-        legend=dict(orientation="h", y=-0.14, x=0),
-        margin=dict(t=90, b=90, l=70, r=40),
+        legend=dict(orientation="h", y=-0.12, x=0),
+        margin=dict(t=90, b=80, l=70, r=40),
         shapes=_regime_shapes(idx, model["regime"], "paper"),
         annotations=[_credit()],
     )
-    return _write(fig, html_name, jpg_name, height=800)
+    return _write(fig, html_name, jpg_name, height=900)
 
 
 ETF_DATE = pd.Timestamp("2024-01-11")
