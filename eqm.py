@@ -256,6 +256,16 @@ def _ema_filter(close):
     }
 
 
+def _filter_note(state):
+    direction = "rising" if state["rising"] else "falling"
+    rate = state["last_daily"] * 100
+    if state["days"] is None:
+        timing = "not heading toward a flip"
+    else:
+        timing = f"filter flips in ~{state['days']:.0f} days at this rate"
+    return f"EMA150 {direction} {rate:+.2f}%/day · {timing}"
+
+
 def _swing_divs(close, slope, order=20):
     px = close.to_numpy(float)
     sl = slope.to_numpy(float)
