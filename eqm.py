@@ -405,19 +405,18 @@ def render_ribbon_price(model, *, html_name, jpg_name, months=None, risk_series=
     since = _runs(model["regime"])[-1][0]
     since_px = float(model["close"].loc[since])
     since_ret = latest / since_px - 1 if since_px else np.nan
-    filt = _ema_filter(model["close"])
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.78, 0.22], vertical_spacing=0.06)
-    fig.add_trace(go.Scatter(x=idx, y=hi_p, mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"), row=1, col=1)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=idx, y=hi_p, mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
     fig.add_trace(go.Scatter(
         x=idx, y=lo_p, mode="lines", line=dict(width=0), fill="tonexty",
         fillcolor="rgba(224,195,106,0.22)", name="Ribbon band", hoverinfo="skip",
-    ), row=1, col=1)
+    ))
     fig.add_trace(go.Scatter(
         x=idx, y=model["close"].loc[idx], mode="lines", name="Price",
         line=dict(color="#f5a24a", width=1.7),
         customdata=risk_line.loc[idx] * (100 if risk_series is not None else 1),
         hovertemplate="Date=%{x|%d %b %Y}<br>price=$%{y:,.0f}<br>risk=%{customdata:.1f}%<extra></extra>",
-    ), row=1, col=1)
+    ))
     switches = _switches(model, idx)
     if len(switches):
         longs = switches[switches["to"] == "long"]
@@ -428,46 +427,16 @@ def render_ribbon_price(model, *, html_name, jpg_name, months=None, risk_series=
             text=[f"${p:,.0f}" for p in longs["price"]], textposition="top center",
             textfont=dict(size=10, color="#34d399"),
             hovertemplate="Switch to long<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
-        ), row=1, col=1)
+        ))
         fig.add_trace(go.Scatter(
             x=cash["date"], y=cash["price"], mode="markers+text", name="Switch to cash",
             marker=dict(color="#f87171", size=8, symbol="triangle-down", line=dict(color="#450a0a", width=1)),
             text=[f"${p:,.0f}" for p in cash["price"]], textposition="bottom center",
             textfont=dict(size=10, color="#f87171"),
             hovertemplate="Switch to cash<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
-        ), row=1, col=1)
-    divs = _swing_divs(model["close"].loc[idx], filt["slope"].loc[idx])
-    bull_x, bull_y, bear_x, bear_y = [], [], [], []
-    for kind, x0, y0, x1, y1 in divs:
-        xs, ys = [x0, x1, None], [y0, y1, None]
-        (bull_x if kind == "bull" else bear_x).extend(xs)
-        (bull_y if kind == "bull" else bear_y).extend(ys)
-    if bull_x:
-        fig.add_trace(go.Scatter(
-            x=bull_x, y=bull_y, mode="lines+text", name="Bull div",
-            line=dict(color="#38bdf8", width=1.6),
-            text=["Bull div" if i % 3 == 1 else "" for i in range(len(bull_x))],
-            textposition="bottom center", textfont=dict(size=10, color="#38bdf8"),
-            hovertemplate="Bullish divergence<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
-        ), row=1, col=1)
-    if bear_x:
-        fig.add_trace(go.Scatter(
-            x=bear_x, y=bear_y, mode="lines+text", name="Bear div",
-            line=dict(color="#f87171", width=1.6),
-            text=["Bear div" if i % 3 == 1 else "" for i in range(len(bear_x))],
-            textposition="top center", textfont=dict(size=10, color="#f87171"),
-            hovertemplate="Bearish divergence<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
-        ), row=1, col=1)
-    slope = filt["slope"].loc[idx] * 100
-    fig.add_trace(go.Scatter(
-        x=idx, y=slope, mode="lines", name="EMA150 10-day slope",
-        line=dict(color="#7dd3fc", width=1.4),
-        hovertemplate="Date=%{x|%d %b %Y}<br>EMA150 10d slope=%{y:+.2f}%<extra></extra>",
-    ), row=2, col=1)
-    fig.add_hline(y=0, line=dict(color="#666", width=1, dash="dot"), row=2, col=1)
-    fig.update_yaxes(title_text="Price (USD)", type="log", gridcolor="#333", row=1, col=1)
-    fig.update_yaxes(title_text="EMA150 slope (%)", gridcolor="#333", row=2, col=1)
-    fig.update_xaxes(title_text="Date", gridcolor="#333", row=2, col=1)
+        ))
+    fig.update_yaxes(title_text="Price (USD)", type="log", gridcolor="#333")
+    fig.update_xaxes(title_text="Date", gridcolor="#333")
     fig.update_layout(
         title=dict(
             text=(
