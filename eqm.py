@@ -264,6 +264,9 @@ def _filter_note(state):
     else:
         timing = f"filter flips in ~{state['days']:.0f} days at this rate"
     return f"EMA150 {direction} {rate:+.2f}%/day · {timing}"
+
+
+def render_ribbon(model, *, html_name, jpg_name, months=None):
     end = model["close"].index[-1]
     if months is None:
         start = model["close"].index[max(SMA_WINDOW, RANK_WINDOW) - 1]
