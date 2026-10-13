@@ -176,7 +176,7 @@ def backtest(model):
     return out
 
 
-def compute_rainbow(df, burn_in=730, resid_window=1460):
+def compute_rainbow(df, burn_in=730, resid_window=1242):
     close = _close_frame(df)
     y = np.log(close.to_numpy())
     x = np.log((close.index - GENESIS).days.to_numpy(float))
