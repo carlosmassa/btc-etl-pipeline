@@ -27,18 +27,18 @@ EXEC_LAG = 1
 COST_BPS = 10.0
 RAINBOW_QS = [0.001, 0.01, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.99, 0.999]
 RAINBOW_BANDS = [
-    (0.001, 0.01, "#0a1535"),
-    (0.01, 0.10, "#2b5fa8"),
-    (0.10, 0.20, "#2286bf"),
-    (0.20, 0.30, "#13a3a0"),
-    (0.30, 0.40, "#1fa94c"),
-    (0.40, 0.50, "#8cc63e"),
-    (0.50, 0.60, "#e6e01f"),
-    (0.60, 0.70, "#f8b500"),
-    (0.70, 0.80, "#f5821f"),
-    (0.80, 0.90, "#ee5a24"),
-    (0.90, 0.99, "#d41e1e"),
-    (0.99, 0.999, "#5e0d0d"),
+    (0.001, 0.01, "#1d4ed8"),
+    (0.01, 0.10, "#2563eb"),
+    (0.10, 0.20, "#0891b2"),
+    (0.20, 0.30, "#0d9488"),
+    (0.30, 0.40, "#16a34a"),
+    (0.40, 0.50, "#65a30d"),
+    (0.50, 0.60, "#ca8a04"),
+    (0.60, 0.70, "#d97706"),
+    (0.70, 0.80, "#ea580c"),
+    (0.80, 0.90, "#dc2626"),
+    (0.90, 0.99, "#b91c1c"),
+    (0.99, 0.999, "#7f1d1d"),
 ]
 HTML_CONFIG = {
     "displayModeBar": True,
@@ -207,10 +207,28 @@ def _regime_shapes(index, regime, yref):
     for start, end, state in _runs(regime.reindex(index).fillna("cash")):
         shapes.append(dict(
             type="rect", x0=start, x1=end, y0=0, y1=1, yref=yref,
-            fillcolor="rgba(224,149,107,0.55)" if state == "long" else "rgba(180,176,168,0.35)",
+            fillcolor="rgba(245,162,74,0.16)" if state == "long" else "rgba(125,211,252,0.06)",
             line=dict(width=0), layer="below",
         ))
     return shapes
+
+
+def _switches(model, idx):
+    regime = model["regime"].reindex(idx)
+    close = model["close"].reindex(idx)
+    rows = []
+    prev = regime.iloc[0]
+    for i in range(1, len(regime)):
+        state = regime.iloc[i]
+        if state != prev:
+            rows.append({
+                "date": regime.index[i],
+                "price": float(close.iloc[i]),
+                "to": state,
+                "label": "Long" if state == "long" else "Cash",
+            })
+            prev = state
+    return pd.DataFrame(rows)
 
 
 def render_ribbon(model, *, html_name, jpg_name, months=None):
@@ -233,23 +251,41 @@ def render_ribbon(model, *, html_name, jpg_name, months=None):
     fig.add_trace(go.Scatter(x=idx, y=model["hi"].loc[idx], mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"), row=1, col=1)
     fig.add_trace(go.Scatter(
         x=idx, y=model["lo"].loc[idx], mode="lines", line=dict(width=0), fill="tonexty",
-        fillcolor="rgba(220,216,207,0.28)", name="Ribbon band", hoverinfo="skip",
+        fillcolor="rgba(224,195,106,0.22)", name="Ribbon band", hoverinfo="skip",
     ), row=1, col=1)
     fig.add_trace(go.Scatter(
         x=idx, y=model["risk"].loc[idx], mode="lines", name="EQM risk",
-        line=dict(color="#f5f5f5", width=1.6),
+        line=dict(color="#f8fafc", width=1.5),
         hovertemplate="Date=%{x|%d %b %Y}<br>risk=%{y:.1f}%<extra></extra>",
     ), row=1, col=1)
     fig.add_trace(go.Scatter(x=idx, y=hi_p, mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"), row=2, col=1)
     fig.add_trace(go.Scatter(
         x=idx, y=lo_p, mode="lines", line=dict(width=0), fill="tonexty",
-        fillcolor="rgba(220,216,207,0.22)", showlegend=False, hoverinfo="skip",
+        fillcolor="rgba(224,195,106,0.18)", showlegend=False, hoverinfo="skip",
     ), row=2, col=1)
     fig.add_trace(go.Scatter(
         x=idx, y=model["close"].loc[idx], mode="lines", name="Price",
-        line=dict(color="orange", width=1.8),
+        line=dict(color="#f5a24a", width=1.7),
         hovertemplate="Date=%{x|%d %b %Y}<br>price=$%{y:,.0f}<extra></extra>",
     ), row=2, col=1)
+    switches = _switches(model, idx)
+    if len(switches):
+        longs = switches[switches["to"] == "long"]
+        cash = switches[switches["to"] == "cash"]
+        fig.add_trace(go.Scatter(
+            x=longs["date"], y=longs["price"], mode="markers+text", name="Switch to long",
+            marker=dict(color="#34d399", size=8, symbol="triangle-up", line=dict(color="#052e16", width=1)),
+            text=[f"${p:,.0f}" for p in longs["price"]], textposition="top center",
+            textfont=dict(size=10, color="#34d399"),
+            hovertemplate="Switch to long<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+        ), row=2, col=1)
+        fig.add_trace(go.Scatter(
+            x=cash["date"], y=cash["price"], mode="markers+text", name="Switch to cash",
+            marker=dict(color="#f87171", size=8, symbol="triangle-down", line=dict(color="#450a0a", width=1)),
+            text=[f"${p:,.0f}" for p in cash["price"]], textposition="bottom center",
+            textfont=dict(size=10, color="#f87171"),
+            hovertemplate="Switch to cash<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+        ), row=2, col=1)
     fig.update_yaxes(title_text="EQM risk (%)", range=[0, 100], row=1, col=1, gridcolor="#333")
     fig.update_yaxes(title_text="Price (USD)", type="log", row=2, col=1, gridcolor="#333")
     fig.update_xaxes(title_text="Date", row=2, col=1, gridcolor="#333")
@@ -363,8 +399,9 @@ def _draw_rainbow(fig, df, row):
     ), row=row, col=1)
     fig.add_trace(go.Scatter(
         x=df.index, y=df["close"], mode="lines", name="Price",
-        line=dict(color="orange", width=1.8),
-        hovertemplate="Date=%{x|%d %b %Y}<br>price=$%{y:,.0f}<extra></extra>",
+        line=dict(color="#f8fafc", width=1.6),
+        customdata=df["risk"] * 100,
+        hovertemplate="Date=%{x|%d %b %Y}<br>price=$%{y:,.0f}<br>risk=%{customdata:.1f}%<extra></extra>",
     ), row=row, col=1)
 
 
