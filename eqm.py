@@ -538,7 +538,7 @@ def render_ribbon_report(model, *, html_name, jpg_name):
         i += 2
     show = pd.DataFrame(rows)
     seps = show["sep"].tolist()
-    trades = tl.sort_values("entry").copy() if len(tl) else tl
+    trades = tl.sort_values("entry", ascending=False).copy() if len(tl) else tl
     fig = make_subplots(
         rows=2, cols=1, vertical_spacing=0.08, row_heights=[0.48, 0.52],
         specs=[[{"type": "table"}], [{"type": "table"}]],
