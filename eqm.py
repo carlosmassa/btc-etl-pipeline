@@ -461,6 +461,9 @@ def render_rainbow_risk(rainbow, *, html_name, jpg_name):
         margin=dict(t=90, b=80, l=70, r=40), annotations=[_credit()],
     )
     return _write(fig, html_name, jpg_name, height=700)
+
+
+def render_rainbow_zoom(rainbow, *, html_name, jpg_name, months=12):
     end = rainbow.index[-1]
     df = rainbow.loc[end - pd.DateOffset(months=months):].dropna(subset=["q0.5"])
     last = rainbow.dropna(subset=["risk"]).iloc[-1]
