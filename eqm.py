@@ -390,10 +390,26 @@ def render_ribbon_price(model, *, html_name, jpg_name, months=None):
             hovertemplate="Switch to cash<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
         ), row=1, col=1)
     slope = filt["slope"].loc[idx] * 100
+    price_dir = np.sign(np.log(model["close"].loc[idx]).diff(PF_LOOKBACK))
+    slope_dir = np.sign(filt["slope"].loc[idx].diff(PF_LOOKBACK))
+    bull = (price_dir < 0) & (slope_dir > 0)
+    bear = (price_dir > 0) & (slope_dir < 0)
     fig.add_trace(go.Scatter(
         x=idx, y=slope, mode="lines", name="EMA150 10-day slope",
         line=dict(color="#7dd3fc", width=1.4),
         hovertemplate="Date=%{x|%d %b %Y}<br>EMA150 10d slope=%{y:+.2f}%<extra></extra>",
+    ), row=2, col=1)
+    fig.add_trace(go.Scatter(
+        x=idx[bull.fillna(False)], y=slope[bull.fillna(False)], mode="markers",
+        name="Price down, slope up",
+        marker=dict(color="#34d399", size=5, symbol="circle"),
+        hovertemplate="Bullish divergence<br>%{x|%d %b %Y}<br>slope=%{y:+.2f}%<extra></extra>",
+    ), row=2, col=1)
+    fig.add_trace(go.Scatter(
+        x=idx[bear.fillna(False)], y=slope[bear.fillna(False)], mode="markers",
+        name="Price up, slope down",
+        marker=dict(color="#f87171", size=5, symbol="circle"),
+        hovertemplate="Bearish divergence<br>%{x|%d %b %Y}<br>slope=%{y:+.2f}%<extra></extra>",
     ), row=2, col=1)
     fig.add_hline(y=0, line=dict(color="#666", width=1, dash="dot"), row=2, col=1)
     fig.update_yaxes(title_text="Price (USD)", type="log", gridcolor="#333", row=1, col=1)
