@@ -553,7 +553,7 @@ def render_ribbon_report(model, *, html_name, jpg_name):
                     fill_color="#1b2129", font=dict(color="white", size=16), align="center"),
         cells=dict(
             values=[
-                [blank(v, s) for s, v in zip(seps, show["Period"])],
+                ["" if s or strat == "Buy & hold" else v for s, v, strat in zip(seps, show["Period"], show["Strategy"])],
                 [blank(v, s) for s, v in zip(seps, show["Strategy"])],
                 [blank(v, s) for s, v in zip(seps, show.get("CAGR_txt", show["CAGR"]))],
                 [blank(v, s) for s, v in zip(seps, show.get("Sharpe_txt", show["Sharpe"]))],
