@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import transform as t
+from eqm import compute_mayer, compute_rainbow, render_backtest, render_rainbow, render_rainbow_zoom, render_ribbon, render_trades
 from model_health import compute_model_health, render_health_chart
 from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from stability import compute_power_law_stability, render_stability_chart
@@ -93,6 +94,13 @@ def main() -> None:
         jpg_name="btc_gold_ratio_health_q001.jpg",
         series_label="BTC/GOLD",
     )
+    eqm = compute_mayer(btc)
+    render_ribbon(eqm, html_name="btc_eqm_ribbon.html", jpg_name="btc_eqm_ribbon.jpg")
+    render_trades(eqm, html_name="btc_eqm_trades.html", jpg_name="btc_eqm_trades.jpg")
+    render_backtest(eqm, html_name="btc_eqm_backtest.html", jpg_name="btc_eqm_backtest.jpg")
+    rainbow = compute_rainbow(btc)
+    render_rainbow(rainbow, html_name="btc_eqm_rainbow.html", jpg_name="btc_eqm_rainbow.jpg")
+    render_rainbow_zoom(rainbow, html_name="btc_eqm_rainbow_zoom.html", jpg_name="btc_eqm_rainbow_zoom.jpg")
     nlb = compute_nlb(btc)
     render_nlb_basic(nlb)
     render_nlb_regression(nlb)
