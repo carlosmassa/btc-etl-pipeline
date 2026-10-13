@@ -29,10 +29,13 @@ HTML_CONFIG = {
     "displaylogo": False,
     "responsive": True,
     "scrollZoom": True,
-    "modeBarButtonsToAdd": [
+    "modeBarButtons": [[
+        "toImage", "zoom2d", "pan2d", "select2d", "lasso2d",
+        "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d",
+        "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines",
         "drawline", "drawopenpath", "drawclosedpath", "drawcircle", "drawrect",
-        "eraseshape", "v1hovermode", "togglespikelines",
-    ],
+        "eraseshape",
+    ]],
 }
 
 
