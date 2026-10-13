@@ -1,9 +1,7 @@
-"""EQM ribbon and rainbow charts for the daily ETL.
+"""EQM ribbon and rainbow on the 3.4-year moving-average risk.
 
-Adapted from the Mayer-ribbon and empirical-quantile rainbow models.
-The pipeline only stores a daily close, so high = low = close and the
-hybrid risk equals the close-only rank. The ribbon is always run with
-the 150-day price-trend filter on. These charts are not posted to X.
+Ribbon signal: long while EMA40(risk) > EMA80(risk). No price filter.
+These charts are not posted to X.
 """
 
 import logging
@@ -85,37 +83,47 @@ def _close_frame(df):
     return close.reindex(full).interpolate().ffill().bfill()
 
 
-def compute_mayer(df):
+def compute_mayer(df, window=RAINBOW_WINDOW):
+    """Ribbon on the 3.4-year EQM risk. Long while EMA40 > EMA80. No price filter."""
     close = _close_frame(df)
-    sma = close.rolling(SMA_WINDOW, min_periods=1).mean()
-    mc = (close / sma).to_numpy()
+    ma = close.rolling(window, min_periods=window).mean()
+    ratio = close / ma
     n = len(close)
-    asym = np.empty(n)
-    for i in range(n):
-        w = mc[max(0, i + 1 - RANK_WINDOW): i + 1]
-        asym[i] = ((w < mc[i]).sum() + 0.5 * (w == mc[i]).sum()) / w.size * 100.0
-    risk = pd.Series(asym, index=close.index, name="risk")
+    risk_np = np.full(n, np.nan)
+    ratio_np = ratio.to_numpy()
+    for s in range(window - 1, n):
+        sample = ratio_np[s + 1 - window: s + 1]
+        sample = sample[~np.isnan(sample)]
+        if sample.size < window // 2:
+            continue
+        risk_np[s] = np.searchsorted(np.sort(sample), ratio_np[s], side="right") / sample.size
+    risk = pd.Series(risk_np * 100.0, index=close.index, name="risk")
     spans = pd.concat([risk.ewm(span=sp, adjust=True, min_periods=1).mean() for sp in RIBBON_SPANS], axis=1)
     lo, hi = spans.min(axis=1), spans.max(axis=1)
     ef = risk.ewm(span=EMA_FAST, adjust=True, min_periods=1).mean()
     es = risk.ewm(span=EMA_SLOW, adjust=True, min_periods=1).mean()
-    price_up = (np.log(close.ewm(span=PF_SPAN, adjust=True, min_periods=1).mean()).diff(PF_LOOKBACK) > 0).fillna(False)
-    on = (ef > es) & price_up
-    regime = pd.Series(np.where(on.to_numpy(), "long", "cash"), index=close.index, name="regime")
+    on = ef > es
+    regime = pd.Series(np.where(on.fillna(False).to_numpy(), "long", "cash"), index=close.index, name="regime")
     logging.info(
-        "EQM ribbon %s days; risk=%.1f regime=%s filter=%s",
-        n, float(risk.iloc[-1]), regime.iloc[-1], "on" if bool(price_up.iloc[-1]) else "off",
+        "EQM ribbon %s days; risk=%.1f regime=%s filter=off",
+        n, float(risk.dropna().iloc[-1]), regime.iloc[-1],
     )
     return {
-        "close": close, "sma": sma, "risk": risk, "lo": lo, "hi": hi,
-        "regime": regime, "gap": ef - es, "price_up": price_up,
+        "close": close, "sma": ma, "risk": risk, "lo": lo, "hi": hi,
+        "regime": regime, "gap": ef - es, "price_up": pd.Series(True, index=close.index),
     }
 
 
 def _risk_to_price(model, s, q):
-    mc = (model["close"] / model["sma"]).to_numpy()
-    w = mc[max(0, s + 1 - RANK_WINDOW): s + 1]
-    return float(model["sma"].iloc[s] * np.quantile(w, float(np.clip(q, 0, 1))))
+    if not np.isfinite(q):
+        return np.nan
+    close = model["close"].to_numpy()
+    ma = model["sma"].to_numpy()
+    w = close[max(0, s + 1 - RAINBOW_WINDOW): s + 1] / ma[max(0, s + 1 - RAINBOW_WINDOW): s + 1]
+    w = w[np.isfinite(w)]
+    if w.size == 0 or not np.isfinite(ma[s]):
+        return np.nan
+    return float(ma[s] * np.quantile(w, float(np.clip(q, 0.0, 1.0))))
 
 
 def _map_band(model, levels):
@@ -161,7 +169,7 @@ def trade_log(model):
 
 def backtest(model):
     close, regime = model["close"], model["regime"]
-    start = close.index[max(SMA_WINDOW, RANK_WINDOW) - 1]
+    start = close.index[RAINBOW_WINDOW - 1]
     pos = (regime == "long").astype(float).shift(EXEC_LAG).fillna(0.0).loc[start:]
     px = close.loc[pos.index]
     ret = px.pct_change().fillna(0.0)
@@ -366,7 +374,7 @@ def render_ribbon(model, *, html_name, jpg_name, months=None):
             text=(
                 "BTCUSD EQM Mayer Ribbon<br><sup>"
                 f"{end:%d %B %Y}  ·  ${latest:,.0f}  ·  risk {risk:.1f}%  ·  "
-                f"{regime.upper()} since {since:%d %b %Y}  ·  {_filter_note(filt)}</sup>"
+                f"{regime.upper()} since {since:%d %b %Y}</sup>"
             ),
             x=0.5, xanchor="center",
         ),
@@ -465,7 +473,7 @@ def render_ribbon_price(model, *, html_name, jpg_name, months=None, risk_series=
             text=(
                 "BTCUSD EQM Mayer Ribbon — price<br><sup>"
                 f"{end:%d %B %Y}  ·  ${latest:,.0f}  ·  risk {risk:.1f}%  ·  "
-                f"{regime.upper()} since {since:%d %b %Y} ({since_ret:+.1%})  ·  {_filter_note(filt)}</sup>"
+                f"{regime.upper()} since {since:%d %b %Y} ({since_ret:+.1%})</sup>"
             ),
             x=0.5, xanchor="center",
         ),
@@ -693,7 +701,7 @@ def render_trades(model, *, html_name, jpg_name, since="2015-01-01"):
         ))
     fig.update_layout(
         title=dict(
-            text="BTCUSD EQM Ribbon — long trades<br><sup>Bubble size is the trade return · EMA150 price filter on · close-only risk</sup>",
+            text="BTCUSD EQM Ribbon — long trades<br><sup>Bubble size is the trade return · 3.4-year EQM risk · EMA40/80 · no price filter</sup>",
             x=0.5, xanchor="center",
         ),
         template="plotly_dark", hovermode="closest",
@@ -714,7 +722,7 @@ def render_backtest(model, *, html_name, jpg_name):
     max_dd = (bt["equity"] / bt["equity"].cummax() - 1).min()
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.68, 0.32], vertical_spacing=0.06)
     fig.add_trace(go.Scatter(x=bt.index, y=bt["buy_hold"], mode="lines", name="Buy & hold", line=dict(color="#9aa6b2", width=1.4)), row=1, col=1)
-    fig.add_trace(go.Scatter(x=bt.index, y=bt["equity"], mode="lines", name="EQM Mayer + filter", line=dict(color="#f5a24a", width=1.8)), row=1, col=1)
+    fig.add_trace(go.Scatter(x=bt.index, y=bt["equity"], mode="lines", name="EQM ribbon", line=dict(color="#f5a24a", width=1.8)), row=1, col=1)
     fig.add_trace(go.Scatter(
         x=bt.index, y=bt["equity"] / bt["equity"].cummax() - 1, mode="lines", name="Strategy drawdown",
         line=dict(color="#C77D8E", width=1.2),
@@ -724,10 +732,10 @@ def render_backtest(model, *, html_name, jpg_name):
     fig.update_layout(
         title=dict(
             text=(
-                "BTCUSD EQM Mayer backtest<br><sup>"
+                "BTCUSD EQM Ribbon backtest<br><sup>"
                 f"{bt.index[0]:%b %Y} – {bt.index[-1]:%b %Y}  ·  "
                 f"CAGR {cagr:.1%}  ·  Sharpe {sharpe:.2f}  ·  max DD {max_dd:.1%}  ·  "
-                f"{bt.attrs['switches']} switches  ·  EMA150 filter on</sup>"
+                f"{bt.attrs['switches']} switches  ·  no price filter</sup>"
             ),
             x=0.5, xanchor="center",
         ),
