@@ -498,7 +498,7 @@ def render_ribbon_report(model, *, html_name, jpg_name):
                 [cell(v, s) for s, v in zip(seps, kpis["Trades"])],
                 [pct(v, s) for s, v in zip(seps, kpis["Exposure"])],
             ],
-            fill_color=[["#f5a24a" if s else ("#1a2330" if strat == "Buy & hold" else "#14181e") for s, strat in zip(kpis["sep"], kpis["Strategy"])]],
+            fill_color=[["#2c333c" if s else ("#1a2330" if strat == "Buy & hold" else "#14181e") for s, strat in zip(kpis["sep"], kpis["Strategy"])]],
             font=dict(color="#e8edf2", size=11), align="center", height=26,
         ),
     ), row=1, col=1)
