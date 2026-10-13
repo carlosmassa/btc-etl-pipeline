@@ -348,7 +348,7 @@ def render_ribbon_report(model, *, html_name, jpg_name):
     bt = backtest(model)
     periods = [("Full history", bt.index[0], bt.index[-1])]
     bottoms = [d for d in CYCLE_BOTTOMS if d >= bt.index[0]]
-    edges = [bt.index[0], *bottoms, bt.index[-1]]
+    edges = [*bottoms, bt.index[-1]]
     for i in range(len(edges) - 1):
         periods.append((f"Cycle {edges[i]:%b %Y}–{edges[i + 1]:%b %Y}", edges[i], edges[i + 1]))
     periods.append(("Since BTC ETF", ETF_DATE, bt.index[-1]))
