@@ -310,6 +310,69 @@ def render_ribbon(model, *, html_name, jpg_name, months=None):
     return _write(fig, html_name, jpg_name, height=1000)
 
 
+def render_ribbon_price(model, *, html_name, jpg_name, months=None):
+    end = model["close"].index[-1]
+    if months is None:
+        start = model["close"].index[max(SMA_WINDOW, RANK_WINDOW) - 1]
+    else:
+        start = end - pd.DateOffset(months=months)
+    idx = model["close"].index[model["close"].index >= start]
+    lo_p = _map_band(model, model["lo"].loc[idx])
+    hi_p = _map_band(model, model["hi"].loc[idx])
+    latest = model["close"].iloc[-1]
+    risk = model["risk"].iloc[-1]
+    regime = model["regime"].iloc[-1]
+    since = _runs(model["regime"])[-1][0]
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=idx, y=hi_p, mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
+    fig.add_trace(go.Scatter(
+        x=idx, y=lo_p, mode="lines", line=dict(width=0), fill="tonexty",
+        fillcolor="rgba(224,195,106,0.22)", name="Ribbon band", hoverinfo="skip",
+    ))
+    fig.add_trace(go.Scatter(
+        x=idx, y=model["close"].loc[idx], mode="lines", name="Price",
+        line=dict(color="#f5a24a", width=1.7),
+        customdata=model["risk"].loc[idx],
+        hovertemplate="Date=%{x|%d %b %Y}<br>price=$%{y:,.0f}<br>risk=%{customdata:.1f}%<extra></extra>",
+    ))
+    switches = _switches(model, idx)
+    if len(switches):
+        longs = switches[switches["to"] == "long"]
+        cash = switches[switches["to"] == "cash"]
+        fig.add_trace(go.Scatter(
+            x=longs["date"], y=longs["price"], mode="markers+text", name="Switch to long",
+            marker=dict(color="#34d399", size=8, symbol="triangle-up", line=dict(color="#052e16", width=1)),
+            text=[f"${p:,.0f}" for p in longs["price"]], textposition="top center",
+            textfont=dict(size=10, color="#34d399"),
+            hovertemplate="Switch to long<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+        ))
+        fig.add_trace(go.Scatter(
+            x=cash["date"], y=cash["price"], mode="markers+text", name="Switch to cash",
+            marker=dict(color="#f87171", size=8, symbol="triangle-down", line=dict(color="#450a0a", width=1)),
+            text=[f"${p:,.0f}" for p in cash["price"]], textposition="bottom center",
+            textfont=dict(size=10, color="#f87171"),
+            hovertemplate="Switch to cash<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+        ))
+    fig.update_yaxes(title_text="Price (USD)", type="log", gridcolor="#333")
+    fig.update_xaxes(title_text="Date", gridcolor="#333")
+    fig.update_layout(
+        title=dict(
+            text=(
+                "BTCUSD EQM Mayer Ribbon — price<br><sup>"
+                f"{end:%d %B %Y}  ·  ${latest:,.0f}  ·  risk {risk:.1f}%  ·  "
+                f"{regime.upper()} since {since:%d %b %Y}  ·  EMA150 price filter on</sup>"
+            ),
+            x=0.5, xanchor="center",
+        ),
+        template="plotly_dark", hovermode="closest",
+        legend=dict(orientation="h", y=-0.14, x=0),
+        margin=dict(t=90, b=90, l=70, r=40),
+        shapes=_regime_shapes(idx, model["regime"], "paper"),
+        annotations=[_credit()],
+    )
+    return _write(fig, html_name, jpg_name, height=800)
+
+
 ETF_DATE = pd.Timestamp("2024-01-11")
 CYCLE_BOTTOMS = [
     pd.Timestamp("2015-01-14"),

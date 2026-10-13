@@ -81,6 +81,8 @@ jobs:
             charts/btc_gold_ratio_health_q001.html
             charts/btc_eqm_ribbon.jpg
             charts/btc_eqm_ribbon.html
+            charts/btc_eqm_ribbon_price.jpg
+            charts/btc_eqm_ribbon_price.html
             charts/btc_eqm_report.jpg
             charts/btc_eqm_report.html
             charts/btc_eqm_trades.jpg
@@ -118,6 +120,7 @@ jobs:
           mv charts/btc_usd_health_q001.html charts/btc_usd_health_q001.jpg temp/
           mv charts/btc_gold_ratio_health_q001.html charts/btc_gold_ratio_health_q001.jpg temp/
           mv charts/btc_eqm_ribbon.html charts/btc_eqm_ribbon.jpg temp/
+          mv charts/btc_eqm_ribbon_price.html charts/btc_eqm_ribbon_price.jpg temp/
           mv charts/btc_eqm_report.html charts/btc_eqm_report.jpg temp/
           mv charts/btc_eqm_trades.html charts/btc_eqm_trades.jpg temp/
           mv charts/btc_eqm_backtest.html charts/btc_eqm_backtest.jpg temp/
@@ -145,6 +148,7 @@ jobs:
                   charts/btc_usd_health_q001.html charts/btc_usd_health_q001.jpg \
                   charts/btc_gold_ratio_health_q001.html charts/btc_gold_ratio_health_q001.jpg \
                   charts/btc_eqm_ribbon.html charts/btc_eqm_ribbon.jpg \
+                  charts/btc_eqm_ribbon_price.html charts/btc_eqm_ribbon_price.jpg \
                   charts/btc_eqm_report.html charts/btc_eqm_report.jpg \
                   charts/btc_eqm_trades.html charts/btc_eqm_trades.jpg \
                   charts/btc_eqm_backtest.html charts/btc_eqm_backtest.jpg \
