@@ -381,15 +381,14 @@ def render_rainbow(rainbow, *, html_name, jpg_name, start="2012-01-01"):
     fig.update_layout(
         title=dict(
             text=(
-                "BTCUSD EQM Rainbow<br><sup>"
+                "BTCUSD EQM Rainbow — full history<br><sup>"
                 f"{rainbow.index[-1]:%d %B %Y}  ·  ${last['close']:,.0f}  ·  "
-                f"50% ${last['median']:,.0f}  ·  risk {last['risk'] * 100:.1f}%  ·  "
-                "walk-forward, 4-year residual window</sup>"
+                f"risk {last['risk'] * 100:.1f}%</sup>"
             ),
             x=0.5, xanchor="center",
         ),
         template="plotly_dark", legend=dict(orientation="h", y=-0.16, x=0),
-        margin=dict(t=90, b=90, l=70, r=40), annotations=[_credit()],
+        margin=dict(t=100, b=90, l=70, r=40), annotations=[_credit()],
     )
     return _write(fig, html_name, jpg_name, height=900)
 
