@@ -25,6 +25,7 @@ PF_SPAN = 150
 PF_LOOKBACK = 10
 EXEC_LAG = 1
 COST_BPS = 10.0
+RAINBOW_WINDOW = 1242  # 3.4 years, the author's stated optimal look-back
 RAINBOW_QS = [0.001, 0.01, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.99, 0.999]
 RAINBOW_BANDS = [
     (0.001, 0.01, "#1d4ed8"),
@@ -176,32 +177,39 @@ def backtest(model):
     return out
 
 
-def compute_rainbow(df, burn_in=730, resid_window=1242):
+def compute_rainbow(df, window=RAINBOW_WINDOW):
+    """Walk-forward EQM rainbow from a trailing moving average.
+
+    The trend is a simple moving average. The standardized price is the
+    ratio of price to that average. Band levels are the empirical
+    quantiles of the ratio inside the same trailing window, mapped back
+    to price. No log transform, one parameter, no look-ahead.
+    """
     close = _close_frame(df)
-    y = np.log(close.to_numpy())
-    x = np.log((close.index - GENESIS).days.to_numpy(float))
+    ma = close.rolling(window, min_periods=window).mean()
+    ratio = close / ma
     n = len(close)
-    cx, cy = np.cumsum(x), np.cumsum(y)
-    cxx, cxy = np.cumsum(x * x), np.cumsum(x * y)
-    k = np.arange(1, n + 1, dtype=float)
-    den = k * cxx - cx ** 2
-    with np.errstate(invalid="ignore", divide="ignore"):
-        b_all = np.where(den > 0, (k * cxy - cx * cy) / den, np.nan)
-        a_all = (cy - b_all * cx) / k
     qs = np.asarray(RAINBOW_QS)
     bands = np.full((n, len(qs)), np.nan)
     risk = np.full(n, np.nan)
-    for s in range(burn_in, n):
-        j = max(0, s + 1 - resid_window)
-        r = y[j: s + 1] - (a_all[s] + b_all[s] * x[j: s + 1])
-        fit = a_all[s] + b_all[s] * x[s]
-        bands[s] = np.exp(fit + np.quantile(r, qs))
-        risk[s] = np.searchsorted(np.sort(r), y[s] - fit, side="right") / r.size
+    ratio_np = ratio.to_numpy()
+    ma_np = ma.to_numpy()
+    for s in range(window - 1, n):
+        sample = ratio_np[s + 1 - window: s + 1]
+        sample = sample[~np.isnan(sample)]
+        if sample.size < window // 2:
+            continue
+        ordered = np.sort(sample)
+        bands[s] = ma_np[s] * np.quantile(ordered, qs)
+        risk[s] = np.searchsorted(ordered, ratio_np[s], side="right") / ordered.size
     out = pd.DataFrame(bands, index=close.index, columns=[f"q{q:g}" for q in qs])
     out["close"] = close
     out["median"] = out["q0.5"]
     out["risk"] = risk
-    logging.info("EQM rainbow %s days; risk=%.1f%% median=$%.0f", n, 100 * risk[-1], out["median"].iloc[-1])
+    logging.info(
+        "EQM rainbow %s days; risk=%.1f%% median=$%.0f",
+        n, 100 * risk[-1], out["median"].iloc[-1],
+    )
     return out
 
 
