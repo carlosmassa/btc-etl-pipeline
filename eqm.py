@@ -256,7 +256,25 @@ def _ema_filter(close):
     }
 
 
-def _filter_note(state):
+def _swing_divs(close, slope, order=20):
+    px = close.to_numpy(float)
+    sl = slope.to_numpy(float)
+    idx = close.index
+    lows, highs = [], []
+    for i in range(order, len(px) - order):
+        window = px[i - order: i + order + 1]
+        if px[i] == window.min():
+            lows.append(i)
+        if px[i] == window.max():
+            highs.append(i)
+    lines = []
+    for a, b in zip(lows, lows[1:]):
+        if px[b] < px[a] and sl[b] > sl[a]:
+            lines.append(("bull", idx[a], px[a], idx[b], px[b]))
+    for a, b in zip(highs, highs[1:]):
+        if px[b] > px[a] and sl[b] < sl[a]:
+            lines.append(("bear", idx[a], px[a], idx[b], px[b]))
+    return lines
     direction = "rising" if state["rising"] else "falling"
     rate = state["last_daily"] * 100
     if state["days"] is None:
@@ -389,27 +407,33 @@ def render_ribbon_price(model, *, html_name, jpg_name, months=None):
             textfont=dict(size=10, color="#f87171"),
             hovertemplate="Switch to cash<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
         ), row=1, col=1)
+    divs = _swing_divs(model["close"].loc[idx], filt["slope"].loc[idx])
+    bull_x, bull_y, bear_x, bear_y = [], [], [], []
+    for kind, x0, y0, x1, y1 in divs:
+        xs, ys = [x0, x1, None], [y0, y1, None]
+        (bull_x if kind == "bull" else bear_x).extend(xs)
+        (bull_y if kind == "bull" else bear_y).extend(ys)
+    if bull_x:
+        fig.add_trace(go.Scatter(
+            x=bull_x, y=bull_y, mode="lines+text", name="Bull div",
+            line=dict(color="#38bdf8", width=1.6),
+            text=["Bull div" if i % 3 == 1 else "" for i in range(len(bull_x))],
+            textposition="bottom center", textfont=dict(size=10, color="#38bdf8"),
+            hovertemplate="Bullish divergence<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+        ), row=1, col=1)
+    if bear_x:
+        fig.add_trace(go.Scatter(
+            x=bear_x, y=bear_y, mode="lines+text", name="Bear div",
+            line=dict(color="#f87171", width=1.6),
+            text=["Bear div" if i % 3 == 1 else "" for i in range(len(bear_x))],
+            textposition="top center", textfont=dict(size=10, color="#f87171"),
+            hovertemplate="Bearish divergence<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+        ), row=1, col=1)
     slope = filt["slope"].loc[idx] * 100
-    price_dir = np.sign(np.log(model["close"].loc[idx]).diff(PF_LOOKBACK))
-    slope_dir = np.sign(filt["slope"].loc[idx].diff(PF_LOOKBACK))
-    bull = (price_dir < 0) & (slope_dir > 0)
-    bear = (price_dir > 0) & (slope_dir < 0)
     fig.add_trace(go.Scatter(
         x=idx, y=slope, mode="lines", name="EMA150 10-day slope",
         line=dict(color="#7dd3fc", width=1.4),
         hovertemplate="Date=%{x|%d %b %Y}<br>EMA150 10d slope=%{y:+.2f}%<extra></extra>",
-    ), row=2, col=1)
-    fig.add_trace(go.Scatter(
-        x=idx[bull.fillna(False)], y=slope[bull.fillna(False)], mode="markers",
-        name="Price down, slope up",
-        marker=dict(color="#34d399", size=5, symbol="circle"),
-        hovertemplate="Bullish divergence<br>%{x|%d %b %Y}<br>slope=%{y:+.2f}%<extra></extra>",
-    ), row=2, col=1)
-    fig.add_trace(go.Scatter(
-        x=idx[bear.fillna(False)], y=slope[bear.fillna(False)], mode="markers",
-        name="Price up, slope down",
-        marker=dict(color="#f87171", size=5, symbol="circle"),
-        hovertemplate="Bearish divergence<br>%{x|%d %b %Y}<br>slope=%{y:+.2f}%<extra></extra>",
     ), row=2, col=1)
     fig.add_hline(y=0, line=dict(color="#666", width=1, dash="dot"), row=2, col=1)
     fig.update_yaxes(title_text="Price (USD)", type="log", gridcolor="#333", row=1, col=1)
