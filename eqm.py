@@ -481,8 +481,7 @@ def render_ribbon_report(model, *, html_name, jpg_name):
                 kpis["Exposure"].map(pct),
             ],
             fill_color=[["#2a2418" if s else ("#1a2330" if strat == "Buy & hold" else "#14181e") for s, strat in zip(kpis["sep"], kpis["Strategy"])]],
-            font=dict(color="#e8edf2", size=11), align="center",
-            height=[8 if s else 26 for s in kpis["sep"]],
+            font=dict(color="#e8edf2", size=11), align="center", height=26,
         ),
     ), row=1, col=1)
     if len(trades):
