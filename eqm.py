@@ -394,6 +394,7 @@ def _kpis(bt, trades):
     avg_win = float(wins["ret"].mean()) if len(wins) else np.nan
     avg_loss = float(losses["ret"].mean()) if len(losses) else np.nan
     return {
+        "Strategy": "EQM",
         "CAGR": cagr,
         "Sharpe": rets.mean() * 365 / vol if vol else np.nan,
         "Sortino": rets.mean() * 365 / down if down else np.nan,
@@ -403,6 +404,30 @@ def _kpis(bt, trades):
         "R:R": abs(avg_win / avg_loss) if avg_loss and avg_loss != 0 else np.nan,
         "Trades": int(len(closed)),
         "Exposure": float(bt["position"].mean()),
+        "sep": False,
+    }
+
+
+def _bh_kpis(bt):
+    eq = bt["buy_hold"]
+    rets = eq.pct_change().fillna(0.0)
+    years = max((eq.index[-1] - eq.index[0]).days / 365.25, 1 / 365.25)
+    cagr = (eq.iloc[-1] / eq.iloc[0]) ** (1 / years) - 1
+    vol = rets.std() * np.sqrt(365)
+    down = rets[rets < 0].std() * np.sqrt(365)
+    max_dd = (eq / eq.cummax() - 1).min()
+    return {
+        "Strategy": "Buy & hold",
+        "CAGR": cagr,
+        "Sharpe": rets.mean() * 365 / vol if vol else np.nan,
+        "Sortino": rets.mean() * 365 / down if down else np.nan,
+        "Calmar": cagr / abs(max_dd) if max_dd else np.nan,
+        "Max DD": max_dd,
+        "Win rate": np.nan,
+        "R:R": np.nan,
+        "Trades": "—",
+        "Exposure": 1.0,
+        "sep": False,
     }
 
 
@@ -417,14 +442,20 @@ def render_ribbon_report(model, *, html_name, jpg_name):
     periods.append(("Since BTC ETF", ETF_DATE, bt.index[-1]))
 
     kpi_rows = []
-    for name, start, end in periods:
+    for i, (name, start, end) in enumerate(periods):
         window = bt.loc[start:end]
         if len(window) < 30:
             continue
+        if kpi_rows:
+            kpi_rows.append({"Period": "", "Strategy": "", "CAGR": np.nan, "Sharpe": np.nan, "Sortino": np.nan, "Calmar": np.nan, "Max DD": np.nan, "Win rate": np.nan, "R:R": np.nan, "Trades": "", "Exposure": np.nan, "sep": True})
+            kpi_rows.append({"Period": "", "Strategy": "", "CAGR": np.nan, "Sharpe": np.nan, "Sortino": np.nan, "Calmar": np.nan, "Max DD": np.nan, "Win rate": np.nan, "R:R": np.nan, "Trades": "", "Exposure": np.nan, "sep": True})
         trades = tl[(tl["entry"] >= start) & (tl["entry"] <= end)] if len(tl) else tl
         row = _kpis(window, trades)
         row["Period"] = name
         kpi_rows.append(row)
+        bh = _bh_kpis(window)
+        bh["Period"] = name
+        kpi_rows.append(bh)
     kpis = pd.DataFrame(kpi_rows)
 
     def pct(v):
@@ -435,20 +466,23 @@ def render_ribbon_report(model, *, html_name, jpg_name):
 
     trades = tl.sort_values("entry").copy() if len(tl) else tl
     fig = make_subplots(
-        rows=2, cols=1, vertical_spacing=0.08, row_heights=[0.42, 0.58],
+        rows=2, cols=1, vertical_spacing=0.08, row_heights=[0.48, 0.52],
         specs=[[{"type": "table"}], [{"type": "table"}]],
         subplot_titles=("EQM Mayer KPIs", "EQM Mayer trades"),
     )
     fig.add_trace(go.Table(
-        header=dict(values=["Period", "CAGR", "Sharpe", "Sortino", "Calmar", "Max DD", "Win rate", "R:R", "Trades", "Exposure"],
+        header=dict(values=["Period", "Strategy", "CAGR", "Sharpe", "Sortino", "Calmar", "Max DD", "Win rate", "R:R", "Trades", "Exposure"],
                     fill_color="#1b2129", font=dict(color="white", size=12), align="center"),
         cells=dict(
             values=[
-                kpis["Period"], kpis["CAGR"].map(pct), kpis["Sharpe"].map(num),
+                kpis["Period"], kpis["Strategy"], kpis["CAGR"].map(pct), kpis["Sharpe"].map(num),
                 kpis["Sortino"].map(num), kpis["Calmar"].map(num), kpis["Max DD"].map(pct),
-                kpis["Win rate"].map(pct), kpis["R:R"].map(num), kpis["Trades"], kpis["Exposure"].map(pct),
+                kpis["Win rate"].map(pct), kpis["R:R"].map(num), kpis["Trades"].map(lambda v: "—" if v == "" else v),
+                kpis["Exposure"].map(pct),
             ],
-            fill_color="#14181e", font=dict(color="#e8edf2", size=11), align="center", height=26,
+            fill_color=[["#2a2418" if s else ("#1a2330" if strat == "Buy & hold" else "#14181e") for s, strat in zip(kpis["sep"], kpis["Strategy"])]],
+            font=dict(color="#e8edf2", size=11), align="center",
+            height=[8 if s else 26 for s in kpis["sep"]],
         ),
     ), row=1, col=1)
     if len(trades):
