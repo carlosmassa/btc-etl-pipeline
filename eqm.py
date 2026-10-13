@@ -459,47 +459,72 @@ def render_ribbon_report(model, *, html_name, jpg_name):
         kpi_rows.append(bh)
     kpis = pd.DataFrame(kpi_rows)
 
-    def pct(v, sep=False):
-        if sep:
-            return ""
-        return "—" if pd.isna(v) else f"{v:.1%}"
+    def fmt(value, better, kind):
+        if pd.isna(value):
+            text = "—"
+        elif kind == "pct":
+            text = f"{value:.1%}"
+        else:
+            text = f"{value:.2f}"
+        return f"<b>{text}</b>" if better else text
 
-    def num(v, sep=False):
-        if sep:
-            return ""
-        return "—" if pd.isna(v) else f"{v:.2f}"
-
-    def cell(v, sep=False):
-        if sep:
-            return ""
-        return "—" if v == "" else v
-
-    seps = kpis["sep"].tolist()
+    pairs = []
+    for i in range(0, len(kpis), 1):
+        pass
+    rows = []
+    i = 0
+    while i < len(kpis):
+        if kpis.iloc[i]["sep"]:
+            rows.append(kpis.iloc[i].to_dict())
+            i += 1
+            continue
+        eqm = kpis.iloc[i]
+        bh = kpis.iloc[i + 1]
+        for metric, kind, higher in [
+            ("CAGR", "pct", True), ("Sharpe", "num", True), ("Sortino", "num", True),
+            ("Calmar", "num", True), ("Max DD", "pct", True),
+        ]:
+            eqm[f"{metric}_txt"] = fmt(eqm[metric], eqm[metric] >= bh[metric], kind)
+            bh[f"{metric}_txt"] = fmt(bh[metric], bh[metric] > eqm[metric], kind)
+        for metric in ["Win rate", "R:R", "Exposure"]:
+            eqm[f"{metric}_txt"] = "—" if pd.isna(eqm[metric]) else (f"{eqm[metric]:.1%}" if metric != "R:R" else f"{eqm[metric]:.2f}")
+            bh[f"{metric}_txt"] = "—" if pd.isna(bh[metric]) else (f"{bh[metric]:.1%}" if metric != "R:R" else f"{bh[metric]:.2f}")
+        eqm["Trades_txt"] = str(eqm["Trades"])
+        bh["Trades_txt"] = "—"
+        rows.append(eqm.to_dict())
+        rows.append(bh.to_dict())
+        i += 2
+    show = pd.DataFrame(rows)
+    seps = show["sep"].tolist()
     trades = tl.sort_values("entry").copy() if len(tl) else tl
     fig = make_subplots(
         rows=2, cols=1, vertical_spacing=0.08, row_heights=[0.48, 0.52],
         specs=[[{"type": "table"}], [{"type": "table"}]],
         subplot_titles=("EQM Mayer KPIs", "EQM Mayer trades"),
     )
+
+    def blank(v, sep):
+        return "" if sep else v
+
     fig.add_trace(go.Table(
         header=dict(values=["Period", "Strategy", "CAGR", "Sharpe", "Sortino", "Calmar", "Max DD", "Win rate", "R:R", "Trades", "Exposure"],
-                    fill_color="#1b2129", font=dict(color="white", size=12), align="center"),
+                    fill_color="#1b2129", font=dict(color="white", size=16), align="center"),
         cells=dict(
             values=[
-                ["" if s else v for s, v in zip(seps, kpis["Period"])],
-                ["" if s else v for s, v in zip(seps, kpis["Strategy"])],
-                [pct(v, s) for s, v in zip(seps, kpis["CAGR"])],
-                [num(v, s) for s, v in zip(seps, kpis["Sharpe"])],
-                [num(v, s) for s, v in zip(seps, kpis["Sortino"])],
-                [num(v, s) for s, v in zip(seps, kpis["Calmar"])],
-                [pct(v, s) for s, v in zip(seps, kpis["Max DD"])],
-                [pct(v, s) for s, v in zip(seps, kpis["Win rate"])],
-                [num(v, s) for s, v in zip(seps, kpis["R:R"])],
-                [cell(v, s) for s, v in zip(seps, kpis["Trades"])],
-                [pct(v, s) for s, v in zip(seps, kpis["Exposure"])],
+                [blank(v, s) for s, v in zip(seps, show["Period"])],
+                [blank(v, s) for s, v in zip(seps, show["Strategy"])],
+                [blank(v, s) for s, v in zip(seps, show.get("CAGR_txt", show["CAGR"]))],
+                [blank(v, s) for s, v in zip(seps, show.get("Sharpe_txt", show["Sharpe"]))],
+                [blank(v, s) for s, v in zip(seps, show.get("Sortino_txt", show["Sortino"]))],
+                [blank(v, s) for s, v in zip(seps, show.get("Calmar_txt", show["Calmar"]))],
+                [blank(v, s) for s, v in zip(seps, show.get("Max DD_txt", show["Max DD"]))],
+                [blank(v, s) for s, v in zip(seps, show.get("Win rate_txt", show["Win rate"]))],
+                [blank(v, s) for s, v in zip(seps, show.get("R:R_txt", show["R:R"]))],
+                [blank(v, s) for s, v in zip(seps, show.get("Trades_txt", show["Trades"]))],
+                [blank(v, s) for s, v in zip(seps, show.get("Exposure_txt", show["Exposure"]))],
             ],
-            fill_color=[["#2c333c" if s else ("#1a2330" if strat == "Buy & hold" else "#14181e") for s, strat in zip(kpis["sep"], kpis["Strategy"])]],
-            font=dict(color="#e8edf2", size=11), align="center", height=26,
+            fill_color=[["#2c333c" if s else ("#1a2330" if strat == "Buy & hold" else "#14181e") for s, strat in zip(show["sep"], show["Strategy"])]],
+            font=dict(color="#e8edf2", size=15), align="center", height=32,
         ),
     ), row=1, col=1)
     if len(trades):
