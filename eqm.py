@@ -379,7 +379,7 @@ def render_ribbon(model, *, html_name, jpg_name, months=None):
     return _write(fig, html_name, jpg_name, height=1000)
 
 
-def render_ribbon_price(model, *, html_name, jpg_name, months=None):
+def render_ribbon_price(model, *, html_name, jpg_name, months=None, risk_series=None):
     end = model["close"].index[-1]
     if months is None:
         start = model["close"].index[max(SMA_WINDOW, RANK_WINDOW) - 1]
@@ -389,7 +389,10 @@ def render_ribbon_price(model, *, html_name, jpg_name, months=None):
     lo_p = _map_band(model, model["lo"].loc[idx])
     hi_p = _map_band(model, model["hi"].loc[idx])
     latest = model["close"].iloc[-1]
-    risk = model["risk"].iloc[-1]
+    risk_line = risk_series.reindex(model["close"].index) if risk_series is not None else model["risk"]
+    risk = float(risk_line.dropna().iloc[-1])
+    if risk_series is not None:
+        risk *= 100
     regime = model["regime"].iloc[-1]
     since = _runs(model["regime"])[-1][0]
     since_px = float(model["close"].loc[since])
@@ -404,7 +407,7 @@ def render_ribbon_price(model, *, html_name, jpg_name, months=None):
     fig.add_trace(go.Scatter(
         x=idx, y=model["close"].loc[idx], mode="lines", name="Price",
         line=dict(color="#f5a24a", width=1.7),
-        customdata=model["risk"].loc[idx],
+        customdata=risk_line.loc[idx] * (100 if risk_series is not None else 1),
         hovertemplate="Date=%{x|%d %b %Y}<br>price=$%{y:,.0f}<br>risk=%{customdata:.1f}%<extra></extra>",
     ), row=1, col=1)
     switches = _switches(model, idx)

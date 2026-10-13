@@ -95,12 +95,15 @@ def main() -> None:
         series_label="BTC/GOLD",
     )
     eqm = compute_mayer(btc)
+    rainbow = compute_rainbow(btc)
     render_ribbon(eqm, html_name="btc_eqm_ribbon.html", jpg_name="btc_eqm_ribbon.jpg")
-    render_ribbon_price(eqm, html_name="btc_eqm_ribbon_price.html", jpg_name="btc_eqm_ribbon_price.jpg")
+    render_ribbon_price(
+        eqm, html_name="btc_eqm_ribbon_price.html", jpg_name="btc_eqm_ribbon_price.jpg",
+        risk_series=rainbow["risk"],
+    )
     render_ribbon_report(eqm, html_name="btc_eqm_report.html", jpg_name="btc_eqm_report.jpg")
     render_trades(eqm, html_name="btc_eqm_trades.html", jpg_name="btc_eqm_trades.jpg")
     render_backtest(eqm, html_name="btc_eqm_backtest.html", jpg_name="btc_eqm_backtest.jpg")
-    rainbow = compute_rainbow(btc)
     render_rainbow(rainbow, html_name="btc_eqm_rainbow.html", jpg_name="btc_eqm_rainbow.jpg")
     render_rainbow_zoom(rainbow, html_name="btc_eqm_rainbow_zoom.html", jpg_name="btc_eqm_rainbow_zoom.jpg")
     render_rainbow_risk(rainbow, html_name="btc_eqm_risk.html", jpg_name="btc_eqm_risk.jpg")
