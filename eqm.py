@@ -821,3 +821,81 @@ def render_rainbow_zoom(rainbow, *, html_name, jpg_name, months=12):
         margin=dict(t=90, b=90, l=70, r=40), annotations=[_credit()],
     )
     return _write(fig, html_name, jpg_name, height=1000)
+
+
+def render_envelope(rainbow, btc, *, html_name, jpg_name, start="2018-01-01", future_days=365):
+    """Power-law 1%/99% quantile lines against the walk-forward EQM 1%/99% bands."""
+    import statsmodels.api as sm
+
+    work = btc.dropna(subset=["Date", "Value"]).sort_values("Date").reset_index(drop=True)
+    work = work[work["Value"] > 0].copy()
+    work["Date"] = pd.to_datetime(work["Date"])
+    work["ind"] = (work["Date"] - GENESIS).dt.days
+    X = sm.add_constant(np.log(work["ind"].astype(float)))
+    y = np.log(work["Value"].astype(float))
+    fits = {q: sm.QuantReg(y, X).fit(q=q, max_iter=5000) for q in (0.01, 0.99)}
+    end = work["Date"].max()
+    future = pd.date_range(end + pd.Timedelta(days=1), periods=future_days, freq="D")
+    all_dates = pd.concat([work["Date"], pd.Series(future)], ignore_index=True)
+    all_ind = (all_dates - GENESIS).dt.days
+    X_all = sm.add_constant(np.log(all_ind.astype(float)))
+    pl = {q: np.exp(fits[q].predict(X_all)) for q in fits}
+    df = rainbow.loc[start:].dropna(subset=["q0.01", "q0.99"])
+    price = df["close"]
+    ath_i, low_i = price.idxmax(), price.idxmin()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df.index, y=price, mode="lines", name="BTC price",
+        line=dict(color="#f8fafc", width=1.5),
+        hovertemplate="Price<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+    ))
+    for q, color, label in ((0.99, "#60a5fa", "Power-law 99%"), (0.01, "#1d4ed8", "Power-law 1%")):
+        fig.add_trace(go.Scatter(
+            x=all_dates[all_dates <= end], y=pl[q][all_dates <= end], mode="lines", name=label,
+            line=dict(color=color, width=1.6),
+            hovertemplate=f"{label}<br>%{{x|%d %b %Y}}<br>$%{{y:,.0f}}<extra></extra>",
+        ))
+        fig.add_trace(go.Scatter(
+            x=all_dates[all_dates >= end], y=pl[q][all_dates >= end], mode="lines", name=f"{label} projection",
+            line=dict(color=color, width=1.6, dash="dash"), showlegend=False,
+            hovertemplate=f"{label} projection<br>%{{x|%d %b %Y}}<br>$%{{y:,.0f}}<extra></extra>",
+        ))
+    fig.add_trace(go.Scatter(
+        x=df.index, y=df["q0.99"], mode="lines", name="EQM 99% (walk-forward)",
+        line=dict(color="#4ade80", width=1.6),
+        hovertemplate="EQM 99%<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=df.index, y=df["q0.01"], mode="lines", name="EQM 1% (walk-forward)",
+        line=dict(color="#15803d", width=1.6),
+        hovertemplate="EQM 1%<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+    ))
+    fig.add_annotation(
+        x=ath_i, y=float(price.loc[ath_i]), text=f"ATH ${price.loc[ath_i]/1000:.0f}k",
+        showarrow=True, arrowhead=2, ax=30, ay=-30, font=dict(color="#f8fafc", size=11),
+    )
+    fig.add_annotation(
+        x=low_i, y=float(price.loc[low_i]), text=f"low ${price.loc[low_i]/1000:.0f}k",
+        showarrow=True, arrowhead=2, ax=30, ay=30, font=dict(color="#f8fafc", size=11),
+    )
+    last_pl99 = float(pl[0.99][all_dates <= end].iloc[-1])
+    last_pl01 = float(pl[0.01][all_dates <= end].iloc[-1])
+    last_eq99 = float(df["q0.99"].iloc[-1])
+    last_eq01 = float(df["q0.01"].iloc[-1])
+    fig.update_yaxes(type="log", title_text="Price (USD, log)", gridcolor="#333")
+    fig.update_xaxes(title_text="Date", gridcolor="#333")
+    fig.update_layout(
+        title=dict(
+            text=(
+                "BTC Valuation Envelope — Power-law 1/99%, EQM 1/99%<br><sup>"
+                f"{end:%d %B %Y}  ·  power-law 99% ${last_pl99:,.0f}  ·  EQM 99% ${last_eq99:,.0f}  ·  "
+                f"power-law 1% ${last_pl01:,.0f}  ·  EQM 1% ${last_eq01:,.0f}</sup>"
+            ),
+            x=0.5, xanchor="center",
+        ),
+        template="plotly_dark", hovermode="closest",
+        legend=dict(orientation="h", y=-0.14, x=0),
+        margin=dict(t=90, b=90, l=70, r=40),
+        annotations=fig.layout.annotations + (_credit(),),
+    )
+    return _write(fig, html_name, jpg_name, height=900)
