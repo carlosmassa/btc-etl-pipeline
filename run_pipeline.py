@@ -113,7 +113,7 @@ def main() -> None:
     if ohlc_path.exists():
         ohlc = pd.read_csv(ohlc_path)
         asym = compute_asymmetric_risk(ohlc)
-        render_asymmetric(asym, html_name="btc_eqm_asymmetric.html", jpg_name="btc_eqm_asymmetric.jpg")
+        render_asymmetric(asym, rainbow, html_name="btc_eqm_asymmetric.html", jpg_name="btc_eqm_asymmetric.jpg")
     nlb = compute_nlb(btc)
     render_nlb_basic(nlb)
     render_nlb_regression(nlb)

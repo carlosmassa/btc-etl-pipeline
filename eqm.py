@@ -246,22 +246,16 @@ def compute_asymmetric_risk(ohlc, window=RAINBOW_WINDOW):
     return out
 
 
-def render_asymmetric(asym, *, html_name, jpg_name):
-    """Rainbow-style chart with the asymmetric high/low risk underneath."""
-    df = asym.dropna(subset=["risk_asym"])
+def render_asymmetric(asym, rainbow, *, html_name, jpg_name):
+    """Rainbow bands on price, asymmetric high/low risk underneath."""
+    df = rainbow.dropna(subset=["q0.5"]).copy()
+    risk = asym["risk_asym"].reindex(df.index)
+    df["risk_asym"] = risk
+    df = df.dropna(subset=["risk_asym"])
     end = df.index[-1]
     last = df.iloc[-1]
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.68, 0.32], vertical_spacing=0.04)
-    fig.add_trace(go.Scatter(
-        x=df.index, y=df["close"], mode="lines", name="BTC price",
-        line=dict(color="#f8fafc", width=1.5),
-        hovertemplate="Price<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
-    ), row=1, col=1)
-    fig.add_trace(go.Scatter(
-        x=df.index, y=df["ma"], mode="lines", name="3.4-year MA",
-        line=dict(color="white", width=1.2),
-        hovertemplate="MA<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
-    ), row=1, col=1)
+    _draw_rainbow(fig, df, 1)
     fig.add_trace(go.Scatter(
         x=df.index, y=df["risk_asym"], mode="lines", name="Asymmetric H/L risk",
         line=dict(color="#7dd3fc", width=1.6),
@@ -273,8 +267,7 @@ def render_asymmetric(asym, *, html_name, jpg_name):
         title=dict(
             text=(
                 "BTCUSD EQM Rainbow — asymmetric High/Low risk<br><sup>"
-                f"{end:%d %B %Y}  ·  ${last['close']:,.0f}  ·  "
-                f"asym {last['risk_asym']:.1f}%  ·  high {last['risk_high']:.1f}%  ·  low {last['risk_low']:.1f}%</sup>"
+                f"{end:%d %B %Y}  ·  ${last['close']:,.0f}  ·  asym {last['risk_asym']:.1f}%</sup>"
             ),
             x=0.5, xanchor="center",
         ),
