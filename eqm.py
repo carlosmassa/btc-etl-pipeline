@@ -214,38 +214,93 @@ def _best_window(close, end, grid=WINDOW_GRID):
     return best_w
 
 
-def compute_rainbow(df, window=RAINBOW_WINDOW):
-    """Walk-forward EQM rainbow from a trailing moving average.
+def _window_score(close, end, w):
+    """Power-law R² of the trailing MA, using only data up to `end`."""
+    days = (close.index - GENESIS).days.to_numpy(float)
+    px = close.to_numpy(float)
+    if end + 1 < w:
+        return -np.inf
+    ma = pd.Series(px).rolling(w).mean().iloc[end + 1 - w: end + 1].to_numpy()
+    d = days[end + 1 - w: end + 1]
+    mask = np.isfinite(ma) & (ma > 0) & (d > 0)
+    if mask.sum() < w // 2:
+        return -np.inf
+    x = np.log(d[mask])
+    y = np.log(ma[mask])
+    coef = np.polyfit(x, y, 1)
+    pred = np.polyval(coef, x)
+    ss_res = ((y - pred) ** 2).sum()
+    ss_tot = ((y - y.mean()) ** 2).sum()
+    return 1 - ss_res / ss_tot if ss_tot else -np.inf
 
-    The trend is a simple moving average. The standardized price is the
-    ratio of price to that average. Band levels are the empirical
-    quantiles of the ratio inside the same trailing window, mapped back
-    to price. No log transform, one parameter, no look-ahead.
+
+def compute_rainbow(df, window=None):
+    """Walk-forward EQM rainbow with a daily optimal window and smooth bands.
+
+    The residual is the price/MA ratio. The window is re-scored each day
+    and smoothed so it drifts rather than jumps. Band levels are a blend
+    of the two nearest grid windows, so the chart stays continuous.
     """
     close = _close_frame(df)
-    ma = close.rolling(window, min_periods=window).mean()
-    ratio = close / ma
     n = len(close)
     qs = np.asarray(RAINBOW_QS)
+    px = close.to_numpy(float)
+    grid = np.asarray(WINDOW_GRID)
+    # Precompute bands for every grid window.
+    band_grid = {}
+    risk_grid = {}
+    for w in grid:
+        ma = close.rolling(w, min_periods=w).mean().to_numpy()
+        ratio = px / ma
+        bands = np.full((n, len(qs)), np.nan)
+        risk = np.full(n, np.nan)
+        for s in range(w - 1, n):
+            sample = ratio[s + 1 - w: s + 1]
+            sample = sample[np.isfinite(sample)]
+            if sample.size < w // 2 or not np.isfinite(ma[s]):
+                continue
+            ordered = np.sort(sample)
+            bands[s] = ma[s] * np.quantile(ordered, qs)
+            risk[s] = np.searchsorted(ordered, ratio[s], side="right") / ordered.size
+        band_grid[w] = bands
+        risk_grid[w] = risk
+    # Daily optimal window, then a short EMA so it drifts.
+    raw = np.full(n, np.nan)
+    for s in range(max(grid), n, 7):
+        scores = [_window_score(close, s, int(w)) for w in grid]
+        raw[s] = grid[int(np.argmax(scores))]
+    raw = pd.Series(raw, index=close.index).interpolate().bfill().ffill().to_numpy()
+    smooth = pd.Series(raw, index=close.index).ewm(span=30, adjust=False).mean().to_numpy()
+    # Blend the two nearest windows.
     bands = np.full((n, len(qs)), np.nan)
     risk = np.full(n, np.nan)
-    ratio_np = ratio.to_numpy()
-    ma_np = ma.to_numpy()
-    for s in range(window - 1, n):
-        sample = ratio_np[s + 1 - window: s + 1]
-        sample = sample[~np.isnan(sample)]
-        if sample.size < window // 2:
+    windows = np.full(n, np.nan)
+    for s in range(n):
+        w = smooth[s]
+        if not np.isfinite(w):
             continue
-        ordered = np.sort(sample)
-        bands[s] = ma_np[s] * np.quantile(ordered, qs)
-        risk[s] = np.searchsorted(ordered, ratio_np[s], side="right") / ordered.size
+        lo = grid[grid <= w]
+        hi = grid[grid >= w]
+        if lo.size == 0 or hi.size == 0:
+            continue
+        w_lo, w_hi = int(lo[-1]), int(hi[0])
+        if w_lo == w_hi:
+            bands[s] = band_grid[w_lo][s]
+            risk[s] = risk_grid[w_lo][s]
+        else:
+            t = (w - w_lo) / (w_hi - w_lo)
+            bands[s] = (1 - t) * band_grid[w_lo][s] + t * band_grid[w_hi][s]
+            risk[s] = (1 - t) * risk_grid[w_lo][s] + t * risk_grid[w_hi][s]
+        windows[s] = w
     out = pd.DataFrame(bands, index=close.index, columns=[f"q{q:g}" for q in qs])
     out["close"] = close
     out["median"] = out["q0.5"]
     out["risk"] = risk
+    out["window"] = windows
+    valid = windows[~np.isnan(windows)]
     logging.info(
-        "EQM rainbow %s days; risk=%.1f%% median=$%.0f",
-        n, 100 * risk[-1], out["median"].iloc[-1],
+        "EQM rainbow %s days; risk=%.1f%% median=$%.0f window=%.0f",
+        n, 100 * risk[-1], out["median"].iloc[-1], valid[-1] if len(valid) else 0,
     )
     return out
 
