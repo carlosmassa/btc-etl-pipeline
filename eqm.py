@@ -851,7 +851,75 @@ def render_rainbow_zoom(rainbow, *, html_name, jpg_name, months=12):
     return _write(fig, html_name, jpg_name, height=1000)
 
 
-def render_envelope(rainbow, btc, *, html_name, jpg_name, start=None, future_days=365):
+def render_eqm_fits(rainbow, btc, *, html_name, jpg_name, future_days=365):
+    """Raw EQM 1/50/99 bands (solid) and their log-log fits (dashed), full history."""
+    import statsmodels.api as sm
+
+    df = rainbow.dropna(subset=["q0.01", "q0.5", "q0.99"]).copy()
+    work = btc.dropna(subset=["Date", "Value"]).sort_values("Date").reset_index(drop=True)
+    work = work[work["Value"] > 0].copy()
+    work["Date"] = pd.to_datetime(work["Date"])
+    price = work.set_index("Date")["Value"]
+    price = price[~price.index.duplicated(keep="last")].sort_index()
+    end = df.index.max()
+    future = pd.date_range(end + pd.Timedelta(days=1), periods=future_days, freq="D")
+    all_dates = pd.concat([pd.Series(df.index), pd.Series(future)], ignore_index=True)
+    all_ind = (all_dates - GENESIS).dt.days.astype(float)
+    X_all = sm.add_constant(np.log(all_ind))
+    fits = {}
+    for col in ("q0.01", "q0.5", "q0.99"):
+        series = df[col].astype(float)
+        mask = series > 0
+        x = (series.index[mask] - GENESIS).days.astype(float)
+        y = np.log(series[mask].to_numpy())
+        X = sm.add_constant(np.log(x))
+        fits[col] = np.exp(sm.OLS(y, X).fit().predict(X_all))
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=price.index, y=price, mode="lines", name="BTC price",
+        line=dict(color="#f8fafc", width=1.5),
+        hovertemplate="Price<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+    ))
+    for col, color, label in (
+        ("q0.99", "#f87171", "EQM 99% (raw)"),
+        ("q0.5", "#fbbf24", "EQM 50% fair (raw)"),
+        ("q0.01", "#60a5fa", "EQM 1% (raw)"),
+    ):
+        fig.add_trace(go.Scatter(
+            x=df.index, y=df[col], mode="lines", name=label,
+            line=dict(color=color, width=1.6),
+            hovertemplate=f"{label}<br>%{{x|%d %b %Y}}<br>$%{{y:,.0f}}<extra></extra>",
+        ))
+        fig.add_trace(go.Scatter(
+            x=all_dates[all_dates <= end], y=fits[col][all_dates <= end],
+            mode="lines", name=f"{label} log-log fit",
+            line=dict(color=color, width=1.4, dash="dash"),
+            hovertemplate=f"{label} fit<br>%{{x|%d %b %Y}}<br>$%{{y:,.0f}}<extra></extra>",
+        ))
+        fig.add_trace(go.Scatter(
+            x=all_dates[all_dates >= end], y=fits[col][all_dates >= end],
+            mode="lines", name=f"{label} projection",
+            line=dict(color=color, width=1.4, dash="dash"), showlegend=False,
+            hovertemplate=f"{label} projection<br>%{{x|%d %b %Y}}<br>$%{{y:,.0f}}<extra></extra>",
+        ))
+    last = {c: float(fits[c][all_dates <= end].iloc[-1]) for c in fits}
+    fig.update_yaxes(type="log", title_text="Price (USD, log)", gridcolor="#333")
+    fig.update_xaxes(title_text="Date", gridcolor="#333")
+    fig.update_layout(
+        title=dict(
+            text=(
+                "EQM prices and log-log fits<br><sup>"
+                f"{end:%d %B %Y}  ·  99% fit ${last['q0.99']:,.0f}  ·  "
+                f"50% fit ${last['q0.5']:,.0f}  ·  1% fit ${last['q0.01']:,.0f}</sup>"
+            ),
+            x=0.5, xanchor="center",
+        ),
+        template="plotly_dark", hovermode="closest",
+        legend=dict(orientation="h", y=-0.14, x=0),
+        margin=dict(t=90, b=90, l=70, r=40),
+        annotations=[_credit()],
+    )
+    return _write(fig, html_name, jpg_name, height=900)
     """Power-law 0.1%/99% quantile lines against the walk-forward EQM 1%/99% bands."""
     import statsmodels.api as sm
 
