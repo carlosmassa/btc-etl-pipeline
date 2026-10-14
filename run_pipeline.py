@@ -1,6 +1,8 @@
 import logging
 from pathlib import Path
 
+import pandas as pd
+
 import transform as t
 from eqm import compute_asymmetric_risk, compute_mayer, compute_rainbow, render_asymmetric, render_backtest, render_envelope, render_eqm_fits, render_rainbow, render_rainbow_risk, render_rainbow_zoom, render_ribbon, render_ribbon_price, render_ribbon_report, render_trades
 from model_health import compute_model_health, render_health_chart
