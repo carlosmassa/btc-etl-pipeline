@@ -143,8 +143,9 @@ def _runs(regime):
 
 
 def trade_log(model):
+    """Trades on the signal date, so the table matches the chart markers."""
     close, regime, risk = model["close"], model["regime"], model["risk"]
-    pos = (regime == "long").astype(int).shift(EXEC_LAG).fillna(0).astype(int)
+    pos = (regime == "long").astype(int)
     rows, entry = [], None
     for i in range(1, len(pos)):
         if pos.iloc[i] == 1 and pos.iloc[i - 1] == 0:
@@ -630,7 +631,7 @@ def render_ribbon_report(model, *, html_name, jpg_name):
         ), row=2, col=1)
     fig.update_layout(
         title=dict(
-            text="BTCUSD EQM Mayer — trades and KPIs<br><sup>Cycles are bottom to bottom · ETF era from 11 Jan 2024 · 1-day lag, 10 bps per switch</sup>",
+            text="BTCUSD EQM Mayer — trades and KPIs<br><sup>Cycles are bottom to bottom · ETF era from 11 Jan 2024 · signal-date prices, 10 bps per switch</sup>",
             x=0.5, xanchor="center",
         ),
         template="plotly_dark", margin=dict(t=80, b=40, l=20, r=20),
