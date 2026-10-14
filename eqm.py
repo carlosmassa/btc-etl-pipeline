@@ -277,6 +277,9 @@ def render_asymmetric(asym, rainbow, *, html_name, jpg_name):
         annotations=[_credit()],
     )
     return _write(fig, html_name, jpg_name, height=900)
+
+
+def compute_rainbow(df, window=RAINBOW_WINDOW):
     """Walk-forward EQM rainbow from a trailing moving average.
 
     The trend is a simple moving average. The standardized price is the
