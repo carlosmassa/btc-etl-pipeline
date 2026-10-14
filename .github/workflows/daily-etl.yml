@@ -95,6 +95,10 @@ jobs:
             charts/btc_eqm_rainbow_zoom.html
             charts/btc_eqm_risk.jpg
             charts/btc_eqm_risk.html
+            charts/btc_eqm_envelope.jpg
+            charts/btc_eqm_envelope.html
+            charts/btc_eqm_fits.jpg
+            charts/btc_eqm_fits.html
             charts/btc_usd_nlb.jpg
             charts/btc_usd_nlb.html
             charts/btc_usd_nlb_regression.jpg
@@ -127,6 +131,8 @@ jobs:
           mv charts/btc_eqm_rainbow.html charts/btc_eqm_rainbow.jpg temp/
           mv charts/btc_eqm_rainbow_zoom.html charts/btc_eqm_rainbow_zoom.jpg temp/
           mv charts/btc_eqm_risk.html charts/btc_eqm_risk.jpg temp/
+          mv charts/btc_eqm_envelope.html charts/btc_eqm_envelope.jpg temp/
+          mv charts/btc_eqm_fits.html charts/btc_eqm_fits.jpg temp/
           mv charts/btc_usd_nlb.html charts/btc_usd_nlb.jpg temp/
           mv charts/btc_usd_nlb_regression.html charts/btc_usd_nlb_regression.jpg temp/
           mv charts/index.html temp/
@@ -155,6 +161,8 @@ jobs:
                   charts/btc_eqm_rainbow.html charts/btc_eqm_rainbow.jpg \
                   charts/btc_eqm_rainbow_zoom.html charts/btc_eqm_rainbow_zoom.jpg \
                   charts/btc_eqm_risk.html charts/btc_eqm_risk.jpg \
+                  charts/btc_eqm_envelope.html charts/btc_eqm_envelope.jpg \
+                  charts/btc_eqm_fits.html charts/btc_eqm_fits.jpg \
                   charts/btc_usd_nlb.html charts/btc_usd_nlb.jpg \
                   charts/btc_usd_nlb_regression.html charts/btc_usd_nlb_regression.jpg \
                   charts/index.html
