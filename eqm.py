@@ -214,8 +214,8 @@ def _best_window(close, end, grid=WINDOW_GRID):
     return best_w
 
 
-def compute_asymmetric_risk(ohlc, window=RAINBOW_WINDOW):
-    """EQM risk on the high and the low, averaged. Needs OHLC."""
+def compute_asymmetric_risk(ohlc, window=1344):
+    """Hybrid H/L risk against the close distribution. Asym is the close rank."""
     df = ohlc.copy()
     df["Date"] = pd.to_datetime(df["Date"])
     df = df.set_index("Date").sort_index()
@@ -223,33 +223,40 @@ def compute_asymmetric_risk(ohlc, window=RAINBOW_WINDOW):
     high = df["High"].astype(float)
     low = df["Low"].astype(float)
     ma = close.rolling(window, min_periods=window).mean()
+    mc = close / ma
+    mh = high / ma
+    ml = low / ma
     n = len(close)
-    risk_h = np.full(n, np.nan)
-    risk_l = np.full(n, np.nan)
-    rh = (high / ma).to_numpy()
-    rl = (low / ma).to_numpy()
+    asym = np.full(n, np.nan)
+    risk = np.full(n, np.nan)
+    mc_np = mc.to_numpy()
+    mh_np = mh.to_numpy()
+    ml_np = ml.to_numpy()
     for s in range(window - 1, n):
-        sh = rh[s + 1 - window: s + 1]
-        sl = rl[s + 1 - window: s + 1]
-        sh = sh[~np.isnan(sh)]
-        sl = sl[~np.isnan(sl)]
-        if sh.size < window // 2 or sl.size < window // 2:
+        sample = mc_np[s + 1 - window: s + 1]
+        sample = sample[~np.isnan(sample)]
+        if sample.size < window // 2:
             continue
-        risk_h[s] = np.searchsorted(np.sort(sh), rh[s], side="right") / sh.size
-        risk_l[s] = np.searchsorted(np.sort(sl), rl[s], side="right") / sl.size
-    asym = (risk_h + risk_l) / 2.0
+        ordered = np.sort(sample)
+        def rank(v):
+            return (np.searchsorted(ordered, v, side="left") + 0.5 * np.sum(ordered == v)) / ordered.size
+        a = rank(mc_np[s])
+        rh = rank(mh_np[s])
+        rl = rank(ml_np[s])
+        asym[s] = a
+        risk[s] = max(a, rh) if a > 0.5 else min(a, rl)
     out = pd.DataFrame({
         "close": close, "high": high, "low": low, "ma": ma,
-        "risk_high": risk_h * 100, "risk_low": risk_l * 100, "risk_asym": asym * 100,
+        "asym": asym * 100, "risk": risk * 100,
     })
-    logging.info("Asymmetric risk %s days; asym=%.1f%%", n, float(out["risk_asym"].dropna().iloc[-1]))
+    logging.info("Hybrid risk %s days; risk=%.1f%% asym=%.1f%%", n, float(out["risk"].dropna().iloc[-1]), float(out["asym"].dropna().iloc[-1]))
     return out
 
 
 def render_asymmetric(asym, rainbow, *, html_name, jpg_name):
     """Rainbow bands on price, asymmetric high/low risk underneath."""
     df = rainbow.dropna(subset=["q0.5"]).copy()
-    risk = asym["risk_asym"].reindex(df.index)
+    risk = asym["risk"].reindex(df.index)
     df["risk_asym"] = risk
     df = df.dropna(subset=["risk_asym"])
     end = df.index[-1]
