@@ -212,13 +212,13 @@ def _best_window(close, end, grid=WINDOW_GRID):
 
 
 def compute_rainbow(df, window=None):
-    """Walk-forward EQM rainbow.
+    """Walk-forward EQM rainbow on the price/MA ratio.
 
-    The trend is a simple moving average. The residual is the difference
-    of price and that average. The window is re-chosen each month as the
-    length that maximises the power-law fit of the average on data up to
-    that date. Band levels are the empirical quantiles of the residual,
-    mapped back to price. No look-ahead.
+    The trend is a simple moving average. The standardized price is the
+    ratio of price to that average. The window is re-chosen each month as
+    the length that maximises the power-law fit of the average on data up
+    to that date. Band levels are the empirical quantiles of the ratio
+    inside the same window, mapped back to price. No look-ahead.
     """
     close = _close_frame(df)
     n = len(close)
@@ -228,10 +228,7 @@ def compute_rainbow(df, window=None):
     windows = np.full(n, np.nan)
     px = close.to_numpy(float)
     month_ends = close.groupby(close.index.to_period("M")).apply(lambda s: s.index[-1])
-    chosen = {}
-    for date in month_ends:
-        s = close.index.get_loc(date)
-        chosen[date] = _best_window(close, s)
+    chosen = {date: _best_window(close, close.index.get_loc(date)) for date in month_ends}
     current_w = min(WINDOW_GRID)
     ma_cache = {}
     for s in range(n):
@@ -244,22 +241,23 @@ def compute_rainbow(df, window=None):
         if w not in ma_cache:
             ma_cache[w] = pd.Series(px).rolling(w).mean().to_numpy()
         ma = ma_cache[w]
-        residual = px[s + 1 - w: s + 1] - ma[s + 1 - w: s + 1]
-        residual = residual[np.isfinite(residual)]
-        if residual.size < w // 2 or not np.isfinite(ma[s]):
+        ratio = px[s + 1 - w: s + 1] / ma[s + 1 - w: s + 1]
+        ratio = ratio[np.isfinite(ratio)]
+        if ratio.size < w // 2 or not np.isfinite(ma[s]) or ma[s] <= 0:
             continue
-        ordered = np.sort(residual)
-        bands[s] = ma[s] + np.quantile(ordered, qs)
-        risk[s] = np.searchsorted(ordered, px[s] - ma[s], side="right") / ordered.size
+        ordered = np.sort(ratio)
+        bands[s] = ma[s] * np.quantile(ordered, qs)
+        risk[s] = np.searchsorted(ordered, px[s] / ma[s], side="right") / ordered.size
         windows[s] = w
     out = pd.DataFrame(bands, index=close.index, columns=[f"q{q:g}" for q in qs])
     out["close"] = close
     out["median"] = out["q0.5"]
     out["risk"] = risk
     out["window"] = windows
+    valid = windows[~np.isnan(windows)]
     logging.info(
         "EQM rainbow %s days; risk=%.1f%% median=$%.0f window=%s",
-        n, 100 * risk[-1], out["median"].iloc[-1], int(windows[~np.isnan(windows)][-1]),
+        n, 100 * risk[-1], out["median"].iloc[-1], int(valid[-1]) if len(valid) else 0,
     )
     return out
 
