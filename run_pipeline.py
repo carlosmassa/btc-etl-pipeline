@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 import transform as t
-from eqm import compute_mayer, compute_rainbow, render_backtest, render_envelope, render_eqm_fits, render_rainbow, render_rainbow_risk, render_rainbow_zoom, render_ribbon, render_ribbon_price, render_ribbon_report, render_trades
+from eqm import compute_asymmetric_risk, compute_mayer, compute_rainbow, render_asymmetric, render_backtest, render_envelope, render_eqm_fits, render_rainbow, render_rainbow_risk, render_rainbow_zoom, render_ribbon, render_ribbon_price, render_ribbon_report, render_trades
 from model_health import compute_model_health, render_health_chart
 from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from stability import compute_power_law_stability, render_stability_chart
@@ -109,6 +109,11 @@ def main() -> None:
     render_rainbow_risk(rainbow, html_name="btc_eqm_risk.html", jpg_name="btc_eqm_risk.jpg")
     render_envelope(rainbow, btc, html_name="btc_eqm_envelope.html", jpg_name="btc_eqm_envelope.jpg")
     render_eqm_fits(rainbow, btc, html_name="btc_eqm_fits.html", jpg_name="btc_eqm_fits.jpg")
+    ohlc_path = Path("data/BTC_OHLC.csv")
+    if ohlc_path.exists():
+        ohlc = pd.read_csv(ohlc_path)
+        asym = compute_asymmetric_risk(ohlc)
+        render_asymmetric(asym, html_name="btc_eqm_asymmetric.html", jpg_name="btc_eqm_asymmetric.jpg")
     nlb = compute_nlb(btc)
     render_nlb_basic(nlb)
     render_nlb_regression(nlb)

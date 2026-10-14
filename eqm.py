@@ -214,7 +214,76 @@ def _best_window(close, end, grid=WINDOW_GRID):
     return best_w
 
 
-def compute_rainbow(df, window=RAINBOW_WINDOW):
+def compute_asymmetric_risk(ohlc, window=RAINBOW_WINDOW):
+    """EQM risk on the high and the low, averaged. Needs OHLC."""
+    df = ohlc.copy()
+    df["Date"] = pd.to_datetime(df["Date"])
+    df = df.set_index("Date").sort_index()
+    close = df["Close"].astype(float)
+    high = df["High"].astype(float)
+    low = df["Low"].astype(float)
+    ma = close.rolling(window, min_periods=window).mean()
+    n = len(close)
+    risk_h = np.full(n, np.nan)
+    risk_l = np.full(n, np.nan)
+    rh = (high / ma).to_numpy()
+    rl = (low / ma).to_numpy()
+    for s in range(window - 1, n):
+        sh = rh[s + 1 - window: s + 1]
+        sl = rl[s + 1 - window: s + 1]
+        sh = sh[~np.isnan(sh)]
+        sl = sl[~np.isnan(sl)]
+        if sh.size < window // 2 or sl.size < window // 2:
+            continue
+        risk_h[s] = np.searchsorted(np.sort(sh), rh[s], side="right") / sh.size
+        risk_l[s] = np.searchsorted(np.sort(sl), rl[s], side="right") / sl.size
+    asym = (risk_h + risk_l) / 2.0
+    out = pd.DataFrame({
+        "close": close, "high": high, "low": low, "ma": ma,
+        "risk_high": risk_h * 100, "risk_low": risk_l * 100, "risk_asym": asym * 100,
+    })
+    logging.info("Asymmetric risk %s days; asym=%.1f%%", n, float(out["risk_asym"].dropna().iloc[-1]))
+    return out
+
+
+def render_asymmetric(asym, *, html_name, jpg_name):
+    """Rainbow-style chart with the asymmetric high/low risk underneath."""
+    df = asym.dropna(subset=["risk_asym"])
+    end = df.index[-1]
+    last = df.iloc[-1]
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.68, 0.32], vertical_spacing=0.04)
+    fig.add_trace(go.Scatter(
+        x=df.index, y=df["close"], mode="lines", name="BTC price",
+        line=dict(color="#f8fafc", width=1.5),
+        hovertemplate="Price<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=df.index, y=df["ma"], mode="lines", name="3.4-year MA",
+        line=dict(color="white", width=1.2),
+        hovertemplate="MA<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=df.index, y=df["risk_asym"], mode="lines", name="Asymmetric H/L risk",
+        line=dict(color="#7dd3fc", width=1.6),
+        hovertemplate="Asym risk<br>%{x|%d %b %Y}<br>%{y:.1f}%<extra></extra>",
+    ), row=2, col=1)
+    fig.update_yaxes(type="log", title_text="Price (USD, log)", row=1, col=1, gridcolor="#333")
+    fig.update_yaxes(title_text="Asymmetric H/L risk (%)", row=2, col=1, gridcolor="#333")
+    fig.update_layout(
+        title=dict(
+            text=(
+                "BTCUSD EQM Rainbow — asymmetric High/Low risk<br><sup>"
+                f"{end:%d %B %Y}  ·  ${last['close']:,.0f}  ·  "
+                f"asym {last['risk_asym']:.1f}%  ·  high {last['risk_high']:.1f}%  ·  low {last['risk_low']:.1f}%</sup>"
+            ),
+            x=0.5, xanchor="center",
+        ),
+        template="plotly_dark", hovermode="closest",
+        legend=dict(orientation="h", y=-0.12, x=0),
+        margin=dict(t=90, b=80, l=70, r=40),
+        annotations=[_credit()],
+    )
+    return _write(fig, html_name, jpg_name, height=900)
     """Walk-forward EQM rainbow from a trailing moving average.
 
     The trend is a simple moving average. The standardized price is the
