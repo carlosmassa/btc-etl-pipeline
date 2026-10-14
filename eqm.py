@@ -920,6 +920,9 @@ def render_eqm_fits(rainbow, btc, *, html_name, jpg_name, future_days=365):
         annotations=[_credit()],
     )
     return _write(fig, html_name, jpg_name, height=900)
+
+
+def render_envelope(rainbow, btc, *, html_name, jpg_name, start=None, future_days=365):
     """Power-law 0.1%/99% quantile lines against the walk-forward EQM 1%/99% bands."""
     import statsmodels.api as sm
 
