@@ -83,12 +83,21 @@ def _close_frame(df):
     return close.reindex(full).interpolate().ffill().bfill()
 
 
-def compute_mayer(df, rainbow=None):
-    """Ribbon on the walk-forward EQM risk. Long while EMA40 > EMA80. No price filter."""
+def compute_mayer(df, window=RAINBOW_WINDOW):
+    """Ribbon on the 3.4-year EQM risk. Long while EMA40 > EMA80. No price filter."""
     close = _close_frame(df)
-    if rainbow is None:
-        rainbow = compute_rainbow(df)
-    risk = rainbow["risk"].reindex(close.index) * 100.0
+    ma = close.rolling(window, min_periods=window).mean()
+    ratio = close / ma
+    n = len(close)
+    risk_np = np.full(n, np.nan)
+    ratio_np = ratio.to_numpy()
+    for s in range(window - 1, n):
+        sample = ratio_np[s + 1 - window: s + 1]
+        sample = sample[~np.isnan(sample)]
+        if sample.size < window // 2:
+            continue
+        risk_np[s] = np.searchsorted(np.sort(sample), ratio_np[s], side="right") / sample.size
+    risk = pd.Series(risk_np * 100.0, index=close.index, name="risk")
     spans = pd.concat([risk.ewm(span=sp, adjust=True, min_periods=1).mean() for sp in RIBBON_SPANS], axis=1)
     lo, hi = spans.min(axis=1), spans.max(axis=1)
     ef = risk.ewm(span=EMA_FAST, adjust=True, min_periods=1).mean()
@@ -97,30 +106,24 @@ def compute_mayer(df, rainbow=None):
     regime = pd.Series(np.where(on.fillna(False).to_numpy(), "long", "cash"), index=close.index, name="regime")
     logging.info(
         "EQM ribbon %s days; risk=%.1f regime=%s filter=off",
-        len(close), float(risk.dropna().iloc[-1]), regime.iloc[-1],
+        n, float(risk.dropna().iloc[-1]), regime.iloc[-1],
     )
     return {
-        "close": close, "sma": rainbow["median"], "risk": risk, "lo": lo, "hi": hi,
+        "close": close, "sma": ma, "risk": risk, "lo": lo, "hi": hi,
         "regime": regime, "gap": ef - es, "price_up": pd.Series(True, index=close.index),
-        "rainbow": rainbow,
     }
 
 
 def _risk_to_price(model, s, q):
     if not np.isfinite(q):
         return np.nan
-    rainbow = model.get("rainbow")
-    if rainbow is None:
+    close = model["close"].to_numpy()
+    ma = model["sma"].to_numpy()
+    w = close[max(0, s + 1 - RAINBOW_WINDOW): s + 1] / ma[max(0, s + 1 - RAINBOW_WINDOW): s + 1]
+    w = w[np.isfinite(w)]
+    if w.size == 0 or not np.isfinite(ma[s]):
         return np.nan
-    date = model["close"].index[s]
-    if date not in rainbow.index:
-        return np.nan
-    row = rainbow.loc[date]
-    qs = np.asarray(RAINBOW_QS)
-    vals = row[[f"q{v:g}" for v in qs]].to_numpy(float)
-    if not np.isfinite(vals).any():
-        return np.nan
-    return float(np.interp(q, qs, vals))
+    return float(ma[s] * np.quantile(w, float(np.clip(q, 0.0, 1.0))))
 
 
 def _map_band(model, levels):
@@ -211,53 +214,38 @@ def _best_window(close, end, grid=WINDOW_GRID):
     return best_w
 
 
-def compute_rainbow(df, window=None):
-    """Walk-forward EQM rainbow on the price/MA ratio.
+def compute_rainbow(df, window=RAINBOW_WINDOW):
+    """Walk-forward EQM rainbow from a trailing moving average.
 
     The trend is a simple moving average. The standardized price is the
-    ratio of price to that average. The window is re-chosen each month as
-    the length that maximises the power-law fit of the average on data up
-    to that date. Band levels are the empirical quantiles of the ratio
-    inside the same window, mapped back to price. No look-ahead.
+    ratio of price to that average. Band levels are the empirical
+    quantiles of the ratio inside the same trailing window, mapped back
+    to price. No log transform, one parameter, no look-ahead.
     """
     close = _close_frame(df)
+    ma = close.rolling(window, min_periods=window).mean()
+    ratio = close / ma
     n = len(close)
     qs = np.asarray(RAINBOW_QS)
     bands = np.full((n, len(qs)), np.nan)
     risk = np.full(n, np.nan)
-    windows = np.full(n, np.nan)
-    px = close.to_numpy(float)
-    month_ends = close.groupby(close.index.to_period("M")).apply(lambda s: s.index[-1])
-    chosen = {date: _best_window(close, close.index.get_loc(date)) for date in month_ends}
-    current_w = min(WINDOW_GRID)
-    ma_cache = {}
-    for s in range(n):
-        date = close.index[s]
-        if date in chosen:
-            current_w = chosen[date]
-        w = current_w
-        if s + 1 < w:
+    ratio_np = ratio.to_numpy()
+    ma_np = ma.to_numpy()
+    for s in range(window - 1, n):
+        sample = ratio_np[s + 1 - window: s + 1]
+        sample = sample[~np.isnan(sample)]
+        if sample.size < window // 2:
             continue
-        if w not in ma_cache:
-            ma_cache[w] = pd.Series(px).rolling(w).mean().to_numpy()
-        ma = ma_cache[w]
-        ratio = px[s + 1 - w: s + 1] / ma[s + 1 - w: s + 1]
-        ratio = ratio[np.isfinite(ratio)]
-        if ratio.size < w // 2 or not np.isfinite(ma[s]) or ma[s] <= 0:
-            continue
-        ordered = np.sort(ratio)
-        bands[s] = ma[s] * np.quantile(ordered, qs)
-        risk[s] = np.searchsorted(ordered, px[s] / ma[s], side="right") / ordered.size
-        windows[s] = w
+        ordered = np.sort(sample)
+        bands[s] = ma_np[s] * np.quantile(ordered, qs)
+        risk[s] = np.searchsorted(ordered, ratio_np[s], side="right") / ordered.size
     out = pd.DataFrame(bands, index=close.index, columns=[f"q{q:g}" for q in qs])
     out["close"] = close
     out["median"] = out["q0.5"]
     out["risk"] = risk
-    out["window"] = windows
-    valid = windows[~np.isnan(windows)]
     logging.info(
-        "EQM rainbow %s days; risk=%.1f%% median=$%.0f window=%s",
-        n, 100 * risk[-1], out["median"].iloc[-1], int(valid[-1]) if len(valid) else 0,
+        "EQM rainbow %s days; risk=%.1f%% median=$%.0f",
+        n, 100 * risk[-1], out["median"].iloc[-1],
     )
     return out
 

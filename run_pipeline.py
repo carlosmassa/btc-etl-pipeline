@@ -94,8 +94,8 @@ def main() -> None:
         jpg_name="btc_gold_ratio_health_q001.jpg",
         series_label="BTC/GOLD",
     )
+    eqm = compute_mayer(btc)
     rainbow = compute_rainbow(btc)
-    eqm = compute_mayer(btc, rainbow)
     render_ribbon(eqm, html_name="btc_eqm_ribbon.html", jpg_name="btc_eqm_ribbon.jpg")
     render_ribbon_price(
         eqm, html_name="btc_eqm_ribbon_price.html", jpg_name="btc_eqm_ribbon_price.jpg",
