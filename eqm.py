@@ -699,7 +699,7 @@ def render_trades(model, *, html_name, jpg_name, since="2015-01-01"):
         ))
     fig.update_layout(
         title=dict(
-            text="BTCUSD EQM Ribbon — long trades<br><sup>Bubble size is the trade return · 3.4-year EQM risk · EMA40/80 · no price filter</sup>",
+            text="BTCUSD EQM Ribbon — long trades<br><sup>Bubble size is the trade return · 3.4-year EQM risk · EMA40/80</sup>",
             x=0.5, xanchor="center",
         ),
         template="plotly_dark", hovermode="closest",
