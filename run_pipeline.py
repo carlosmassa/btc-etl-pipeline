@@ -2,6 +2,8 @@ import logging
 from pathlib import Path
 
 import transform as t
+from eqm import compute_mayer, compute_rainbow, render_backtest, render_envelope, render_eqm_fits, render_rainbow, render_rainbow_risk, render_rainbow_zoom, render_ribbon, render_ribbon_price, render_ribbon_report, render_trades
+from model_health import compute_model_health, render_health_chart
 from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from stability import compute_power_law_stability, render_stability_chart
 
@@ -39,6 +41,22 @@ def main() -> None:
         show_extrema_table=True,
     )
 
+    render_health_chart(
+        compute_model_health(btc),
+        title="BTCUSD Power Law Health",
+        html_name="btc_usd_health.html",
+        jpg_name="btc_usd_health.jpg",
+        series_label="BTCUSD",
+    )
+
+    render_health_chart(
+        compute_model_health(btc, floor_q=0.001),
+        title="BTCUSD Power Law Health — 0.1% floor",
+        html_name="btc_usd_health_q001.html",
+        jpg_name="btc_usd_health_q001.jpg",
+        series_label="BTCUSD",
+    )
+
     ratio = t.clean_btc_gold_ratio()
     t.render_chart(
         t.fit_power_law(ratio, series_label="BTC/Gold"),
@@ -60,6 +78,37 @@ def main() -> None:
         series_label="BTC/GOLD ratio",
         show_extrema_table=True,
     )
+
+    render_health_chart(
+        compute_model_health(ratio),
+        title="BTC/GOLD Power Law Health",
+        html_name="btc_gold_ratio_health.html",
+        jpg_name="btc_gold_ratio_health.jpg",
+        series_label="BTC/GOLD",
+    )
+
+    render_health_chart(
+        compute_model_health(ratio, floor_q=0.001),
+        title="BTC/GOLD Power Law Health — 0.1% floor",
+        html_name="btc_gold_ratio_health_q001.html",
+        jpg_name="btc_gold_ratio_health_q001.jpg",
+        series_label="BTC/GOLD",
+    )
+    eqm = compute_mayer(btc)
+    rainbow = compute_rainbow(btc)
+    render_ribbon(eqm, html_name="btc_eqm_ribbon.html", jpg_name="btc_eqm_ribbon.jpg")
+    render_ribbon_price(
+        eqm, html_name="btc_eqm_ribbon_price.html", jpg_name="btc_eqm_ribbon_price.jpg",
+        risk_series=rainbow["risk"],
+    )
+    render_ribbon_report(eqm, html_name="btc_eqm_report.html", jpg_name="btc_eqm_report.jpg")
+    render_trades(eqm, html_name="btc_eqm_trades.html", jpg_name="btc_eqm_trades.jpg")
+    render_backtest(eqm, html_name="btc_eqm_backtest.html", jpg_name="btc_eqm_backtest.jpg")
+    render_rainbow(rainbow, html_name="btc_eqm_rainbow.html", jpg_name="btc_eqm_rainbow.jpg")
+    render_rainbow_zoom(rainbow, html_name="btc_eqm_rainbow_zoom.html", jpg_name="btc_eqm_rainbow_zoom.jpg")
+    render_rainbow_risk(rainbow, html_name="btc_eqm_risk.html", jpg_name="btc_eqm_risk.jpg")
+    render_envelope(rainbow, btc, html_name="btc_eqm_envelope.html", jpg_name="btc_eqm_envelope.jpg")
+    render_eqm_fits(rainbow, btc, html_name="btc_eqm_fits.html", jpg_name="btc_eqm_fits.jpg")
     nlb = compute_nlb(btc)
     render_nlb_basic(nlb)
     render_nlb_regression(nlb)
