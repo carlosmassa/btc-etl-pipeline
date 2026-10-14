@@ -23,7 +23,7 @@ PF_SPAN = 150
 PF_LOOKBACK = 10
 EXEC_LAG = 1
 COST_BPS = 10.0
-RAINBOW_WINDOW = 1242  # 3.4 years, the author's stated optimal look-back
+RAINBOW_WINDOW = 1344  # ~192 weeks, the window that fits the published prints
 RAINBOW_QS = [0.001, 0.01, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.99, 0.999]
 RAINBOW_BANDS = [
     (0.001, 0.01, "#1d4ed8"),
