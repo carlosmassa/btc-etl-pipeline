@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from plotly.subplots import make_subplots
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -73,7 +73,30 @@ def compute_bands(df):
     return out
 
 
-def render_sth_chart():
+def render_momentum_chart(df):
+    """MVRV momentum oscillator."""
+    d = df.loc["2010-01-01":].copy()
+    d["sma365"] = d["MVRV"].rolling(365).mean()
+    d["momentum"] = d["MVRV"] - d["sma365"]
+    d = d.dropna(subset=["momentum"])
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Scatter(x=d.index, y=d["Price"], mode="lines", name="Price", line=dict(color="#f8fafc", width=1.2)), secondary_y=False)
+    pos = d[d["momentum"] >= 0]
+    neg = d[d["momentum"] < 0]
+    fig.add_trace(go.Bar(x=pos.index, y=pos["momentum"], name="Momentum +", marker_color="#22c55e", marker_line_width=0), secondary_y=True)
+    fig.add_trace(go.Bar(x=neg.index, y=neg["momentum"], name="Momentum −", marker_color="#ef4444", marker_line_width=0), secondary_y=True)
+    fig.update_yaxes(type="log", title_text="Price (USD)", secondary_y=False)
+    fig.update_yaxes(title_text="Momentum", secondary_y=True, zeroline=True, zerolinecolor="#64748b")
+    fig.update_layout(
+        title=dict(text="Bitcoin MVRV Momentum Oscillator<br><sup>MVRV minus its 365-day average</sup>", x=0.5, xanchor="center"),
+        template="plotly_dark", hovermode="closest", barmode="relative",
+        legend=dict(orientation="h", y=-0.12, x=0),
+        margin=dict(t=90, b=80, l=70, r=70),
+        annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
+    )
+    fig.write_html("charts/btc_mvrv_momentum.html")
+    fig.write_image("charts/btc_mvrv_momentum.jpg", width=1600, height=700, scale=2)
+    logging.info("Wrote MVRV momentum chart")
     """STH realized price as support and resistance."""
     sth = pd.read_csv("data/BTC_STH.csv", parse_dates=["Date"]).set_index("Date")
     price = pd.read_csv("data/BTC_Prices.csv", parse_dates=["Date"]).set_index("Date")
