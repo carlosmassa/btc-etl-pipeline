@@ -50,6 +50,7 @@ def compute_bands(df):
     pct = np.full(n, np.nan)
     bands = {q: np.full(n, np.nan) for q in QS}
     mvrv_np = mvrv.to_numpy()
+    adj_np = adj.to_numpy()
     realized = df["Realized"].to_numpy()
     for s in range(180, n):
         sample = mvrv_np[: s + 1]
@@ -57,10 +58,13 @@ def compute_bands(df):
         if sample.size < 100:
             continue
         ordered = np.sort(sample)
-        pct[s] = np.searchsorted(ordered, mvrv_np[s], side="right") / ordered.size
         for q in QS:
-            q_mvrv = np.quantile(ordered, q)
-            bands[q][s] = realized[s] * q_mvrv
+            bands[q][s] = realized[s] * np.quantile(ordered, q)
+        # Cycle-adjusted percentile for the oscillator
+        adj_sample = adj_np[: s + 1]
+        adj_sample = adj_sample[~np.isnan(adj_sample)]
+        if adj_sample.size > 50 and not np.isnan(adj_np[s]):
+            pct[s] = np.searchsorted(np.sort(adj_sample), adj_np[s], side="right") / adj_sample.size
     out = df.copy()
     out["pct"] = pct * 100
     for q in QS:
@@ -99,11 +103,15 @@ def render(df, *, html_name, jpg_name):
         line=dict(color="#f59e0b", width=1.4),
         hovertemplate="Realized<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
     ), row=1, col=1)
-    # Bottom: percentile with horizontal bands
-    fig.add_hrect(y0=0, y1=25, fillcolor="rgba(34,197,94,0.25)", line_width=0, row=2, col=1)
-    fig.add_hrect(y0=25, y1=50, fillcolor="rgba(250,204,21,0.18)", line_width=0, row=2, col=1)
-    fig.add_hrect(y0=50, y1=75, fillcolor="rgba(251,146,60,0.18)", line_width=0, row=2, col=1)
-    fig.add_hrect(y0=75, y1=100, fillcolor="rgba(239,68,68,0.25)", line_width=0, row=2, col=1)
+    # Bottom: percentile with strong horizontal bands
+    fig.add_shape(type="rect", xref="x2", yref="y2", x0=d.index[0], x1=d.index[-1],
+                  y0=0, y1=25, fillcolor="rgba(34,197,94,0.35)", line_width=0, layer="below")
+    fig.add_shape(type="rect", xref="x2", yref="y2", x0=d.index[0], x1=d.index[-1],
+                  y0=25, y1=50, fillcolor="rgba(250,204,21,0.30)", line_width=0, layer="below")
+    fig.add_shape(type="rect", xref="x2", yref="y2", x0=d.index[0], x1=d.index[-1],
+                  y0=50, y1=75, fillcolor="rgba(251,146,60,0.30)", line_width=0, layer="below")
+    fig.add_shape(type="rect", xref="x2", yref="y2", x0=d.index[0], x1=d.index[-1],
+                  y0=75, y1=100, fillcolor="rgba(239,68,68,0.35)", line_width=0, layer="below")
     fig.add_trace(go.Scatter(
         x=d.index, y=d["pct"], mode="lines", name="Cycle-adjusted percentile",
         line=dict(color="#111", width=1.4),
