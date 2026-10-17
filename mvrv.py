@@ -103,15 +103,15 @@ def render(df, *, html_name, jpg_name):
         line=dict(color="#f59e0b", width=1.4),
         hovertemplate="Realized<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
     ), row=1, col=1)
-    # Bottom: percentile with strong horizontal bands
-    fig.add_shape(type="rect", xref="x2", yref="y2", x0=d.index[0], x1=d.index[-1],
-                  y0=0, y1=25, fillcolor="rgba(34,197,94,0.35)", line_width=0, layer="below")
-    fig.add_shape(type="rect", xref="x2", yref="y2", x0=d.index[0], x1=d.index[-1],
-                  y0=25, y1=50, fillcolor="rgba(250,204,21,0.30)", line_width=0, layer="below")
-    fig.add_shape(type="rect", xref="x2", yref="y2", x0=d.index[0], x1=d.index[-1],
-                  y0=50, y1=75, fillcolor="rgba(251,146,60,0.30)", line_width=0, layer="below")
-    fig.add_shape(type="rect", xref="x2", yref="y2", x0=d.index[0], x1=d.index[-1],
-                  y0=75, y1=100, fillcolor="rgba(239,68,68,0.35)", line_width=0, layer="below")
+    # Bottom: percentile with filled band traces
+    band_colors = [(0, 25, "rgba(34,197,94,0.35)"), (25, 50, "rgba(250,204,21,0.30)"),
+                   (50, 75, "rgba(251,146,60,0.30)"), (75, 100, "rgba(239,68,68,0.35)")]
+    for y0, y1, color in band_colors:
+        fig.add_trace(go.Scatter(
+            x=[d.index[0], d.index[-1], d.index[-1], d.index[0]],
+            y=[y0, y0, y1, y1], mode="lines", fill="toself",
+            fillcolor=color, line=dict(width=0), showlegend=False, hoverinfo="skip",
+        ), row=2, col=1)
     fig.add_trace(go.Scatter(
         x=d.index, y=d["pct"], mode="lines", name="Cycle-adjusted percentile",
         line=dict(color="#111", width=1.4),
