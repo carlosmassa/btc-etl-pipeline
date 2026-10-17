@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 import transform as t
-from eqm import compute_asymmetric_risk, compute_mayer, compute_rainbow, render_asymmetric, render_backtest, render_envelope, render_eqm_fits, render_rainbow, render_rainbow_risk, render_rainbow_zoom, render_ribbon, render_ribbon_price, render_ribbon_report, render_trades
+from mvrv import compute_bands, render as render_mvrv
 from model_health import compute_model_health, render_health_chart
 from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from stability import compute_power_law_stability, render_stability_chart
@@ -116,6 +116,8 @@ def main() -> None:
         ohlc = pd.read_csv(ohlc_path)
         asym = compute_asymmetric_risk(ohlc)
         render_asymmetric(asym, rainbow, html_name="btc_eqm_asymmetric.html", jpg_name="btc_eqm_asymmetric.jpg")
+        mvrv = pd.read_csv("data/BTC_MVRV.csv", parse_dates=["Date"]).set_index("Date")
+        render_mvrv(compute_bands(mvrv), html_name="btc_mvrv_bands.html", jpg_name="btc_mvrv_bands.jpg")
     nlb = compute_nlb(btc)
     render_nlb_basic(nlb)
     render_nlb_regression(nlb)

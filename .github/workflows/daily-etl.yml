@@ -101,6 +101,8 @@ jobs:
             charts/btc_eqm_fits.html
             charts/btc_eqm_asymmetric.jpg
             charts/btc_eqm_asymmetric.html
+            charts/btc_mvrv_bands.jpg
+            charts/btc_mvrv_bands.html
             charts/btc_usd_nlb.jpg
             charts/btc_usd_nlb.html
             charts/btc_usd_nlb_regression.jpg
@@ -136,6 +138,7 @@ jobs:
           mv charts/btc_eqm_envelope.html charts/btc_eqm_envelope.jpg temp/
           mv charts/btc_eqm_fits.html charts/btc_eqm_fits.jpg temp/
           mv charts/btc_eqm_asymmetric.html charts/btc_eqm_asymmetric.jpg temp/
+          mv charts/btc_mvrv_bands.html charts/btc_mvrv_bands.jpg temp/
           mv charts/btc_usd_nlb.html charts/btc_usd_nlb.jpg temp/
           mv charts/btc_usd_nlb_regression.html charts/btc_usd_nlb_regression.jpg temp/
           mv charts/index.html temp/
@@ -167,6 +170,7 @@ jobs:
                   charts/btc_eqm_envelope.html charts/btc_eqm_envelope.jpg \
                   charts/btc_eqm_fits.html charts/btc_eqm_fits.jpg \
                   charts/btc_eqm_asymmetric.html charts/btc_eqm_asymmetric.jpg \
+                  charts/btc_mvrv_bands.html charts/btc_mvrv_bands.jpg \
                   charts/btc_usd_nlb.html charts/btc_usd_nlb.jpg \
                   charts/btc_usd_nlb_regression.html charts/btc_usd_nlb_regression.jpg \
                   charts/index.html
