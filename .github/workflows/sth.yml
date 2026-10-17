@@ -1,0 +1,44 @@
+name: Update STH Realized Price
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pandas requests
+      - name: Append latest STH
+        run: |
+          python3 - << 'PY'
+          import pandas as pd, requests
+          from pathlib import Path
+          url = "https://bitcoin-data.com/v1/sth-realized-price"
+          r = requests.get(url, timeout=60)
+          r.raise_for_status()
+          rows = r.json()
+          latest = rows[-1]
+          date = pd.to_datetime(latest["d"])
+          value = float(latest["sthRealizedPrice"])
+          path = Path("data/BTC_STH.csv")
+          df = pd.read_csv(path, parse_dates=["Date"])
+          if date in df["Date"].values:
+              print(f"{date:%Y-%m-%d} already present")
+          else:
+              df = pd.concat([df, pd.DataFrame({"Date": [date], "STH": [value]})], ignore_index=True)
+              df = df.sort_values("Date").drop_duplicates("Date", keep="last")
+              df.to_csv(path, index=False)
+              print(f"Added {date:%Y-%m-%d}: ${value:,.0f}")
+          PY
+      - name: Commit
+        run: |
+          git config user.name "Carlos Massa"
+          git config user.email "47972273+carlosmassa@users.noreply.github.com"
+          git add data/BTC_STH.csv
+          git diff --staged --quiet || git commit -m "Update STH realized price" && git push

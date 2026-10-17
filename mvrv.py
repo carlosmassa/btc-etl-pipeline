@@ -73,7 +73,31 @@ def compute_bands(df):
     return out
 
 
-def render_sma_charts(df):
+def render_sth_chart():
+    """STH realized price as support and resistance."""
+    sth = pd.read_csv("data/BTC_STH.csv", parse_dates=["Date"]).set_index("Date")
+    price = pd.read_csv("data/BTC_Prices.csv", parse_dates=["Date"]).set_index("Date")
+    df = price.join(sth, how="inner").dropna(subset=["Value", "STH"])
+    df["ratio"] = df["Value"] / df["STH"]
+    df["touch"] = (df["ratio"] - 1).abs() < 0.03
+    touches = df[df["touch"]]
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df["Value"], mode="lines", name="BTC Price", line=dict(color="#f8fafc", width=1.6)))
+    fig.add_trace(go.Scatter(x=df.index, y=df["STH"], mode="lines", name="STH Realized Price", line=dict(color="#f5a24a", width=1.4)))
+    fig.add_trace(go.Scatter(x=touches.index, y=touches["Value"], mode="markers", name="Touch (±3%)",
+                             marker=dict(color="#22c55e", size=6, symbol="circle"),
+                             hovertemplate="Touch<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>"))
+    fig.update_yaxes(type="log", title_text="Price (USD)")
+    fig.update_layout(
+        title=dict(text="STH Realized Price as support and resistance<br><sup>Coins moved in the last 155 days</sup>", x=0.5, xanchor="center"),
+        template="plotly_dark", hovermode="closest",
+        legend=dict(orientation="h", y=-0.12, x=0),
+        margin=dict(t=90, b=80, l=70, r=40),
+        annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
+    )
+    fig.write_html("charts/btc_sth_support.html")
+    fig.write_image("charts/btc_sth_support.jpg", width=1600, height=700, scale=2)
+    logging.info("Wrote STH support chart")
     """MVRV SMA, raw signals, and percentile signals. From 2012."""
     d = df.loc["2012-01-01":].copy()
     d["sma365"] = d["MVRV"].rolling(365).mean()
