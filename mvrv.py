@@ -24,13 +24,12 @@ def load_mvrv(path="data/BTC_MVRV.csv"):
 
 
 def cycle_adjust(mvrv):
-    """Normalize MVRV to a contracting envelope of cycle peaks and troughs."""
-    # Major cycle peaks and troughs (local extremes with 1y window)
-    peaks = mvrv[(mvrv == mvrv.rolling(365, center=True).max()) & (mvrv > 2.5)]
-    troughs = mvrv[(mvrv == mvrv.rolling(365, center=True).min()) & (mvrv < 1.2)]
-    if len(peaks) < 3 or len(troughs) < 3:
-        return mvrv
-    # Fit declining line through peaks, rising through troughs (on days since start)
+    """Normalize MVRV to a contracting envelope of confirmed cycle extremes."""
+    # Confirmed cycle peaks and troughs
+    peak_dates = ["2011-06-04", "2013-11-18", "2017-12-07", "2021-02-21"]
+    trough_dates = ["2011-10-19", "2015-01-14", "2018-12-15", "2022-11-09"]
+    peaks = mvrv.reindex(pd.to_datetime(peak_dates)).dropna()
+    troughs = mvrv.reindex(pd.to_datetime(trough_dates)).dropna()
     start = mvrv.index[0]
     peak_days = (peaks.index - start).days.to_numpy()
     trough_days = (troughs.index - start).days.to_numpy()
