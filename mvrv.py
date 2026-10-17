@@ -23,11 +23,10 @@ def load_mvrv(path="data/BTC_MVRV.csv"):
     return df.dropna(subset=["Price", "MVRV", "Realized"])
 
 
-def cycle_adjust(mvrv):
-    """Normalize MVRV to a contracting envelope of confirmed cycle extremes."""
-    # Confirmed cycle peaks and troughs
-    peak_dates = ["2011-06-04", "2013-11-18", "2017-12-07", "2021-02-21"]
-    trough_dates = ["2011-10-19", "2015-01-14", "2018-12-15", "2022-11-09"]
+def cycle_adjust(mvrv, price):
+    """Normalize MVRV using the dates of confirmed price-cycle extremes."""
+    peak_dates = ["2013-12-04", "2017-12-16", "2021-11-08", "2025-10-06"]
+    trough_dates = ["2015-01-14", "2018-12-15", "2022-11-09"]
     peaks = mvrv.reindex(pd.to_datetime(peak_dates)).dropna()
     troughs = mvrv.reindex(pd.to_datetime(trough_dates)).dropna()
     start = mvrv.index[0]
@@ -45,7 +44,7 @@ def cycle_adjust(mvrv):
 
 def compute_bands(df):
     mvrv = df["MVRV"]
-    adj = cycle_adjust(mvrv)
+    adj = cycle_adjust(mvrv, df["Price"])
     n = len(df)
     pct = np.full(n, np.nan)
     bands = {q: np.full(n, np.nan) for q in QS}
