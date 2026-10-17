@@ -132,11 +132,18 @@ def render(df, *, html_name, jpg_name):
         template="plotly_dark", hovermode="closest",
         legend=dict(orientation="h", y=-0.12, x=0),
         margin=dict(t=90, b=80, l=70, r=40),
-        annotations=[dict(
-            text="Chart by: @CarlesMassa", xref="paper", yref="paper",
-            x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"),
-            xanchor="right",
-        )],
+        annotations=[
+            dict(
+                text="Percentile of cycle-adjusted MVRV<br>(0 = cheapest day in history, 100 = most expensive)",
+                xref="paper", yref="paper", x=0.02, y=0.28, showarrow=False,
+                font=dict(size=10, color="#9aa6b2"), xanchor="left", yanchor="top",
+            ),
+            dict(
+                text="Chart by: @CarlesMassa", xref="paper", yref="paper",
+                x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"),
+                xanchor="right",
+            ),
+        ],
     )
     html_path = Path("charts") / html_name
     jpg_path = Path("charts") / jpg_name
