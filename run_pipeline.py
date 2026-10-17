@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 import transform as t
-from mvrv import compute_bands, render as render_mvrv, render_sma_charts, render_sth_chart
+from mvrv import compute_bands, render as render_mvrv, render_sma_charts, render_sth_chart, render_momentum_chart
 from model_health import compute_model_health, render_health_chart
 from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from stability import compute_power_law_stability, render_stability_chart
@@ -120,6 +120,7 @@ def main() -> None:
         render_mvrv(compute_bands(mvrv), html_name="btc_mvrv_bands.html", jpg_name="btc_mvrv_bands.jpg")
         render_sma_charts(mvrv)
         render_sth_chart()
+        render_momentum_chart(mvrv)
     nlb = compute_nlb(btc)
     render_nlb_basic(nlb)
     render_nlb_regression(nlb)
