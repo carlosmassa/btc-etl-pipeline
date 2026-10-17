@@ -23,12 +23,14 @@ def load_mvrv(path="data/BTC_MVRV.csv"):
     return df.dropna(subset=["Price", "MVRV", "Realized"])
 
 
-def cycle_adjust(mvrv, price):
-    """Normalize MVRV using the dates of confirmed price-cycle extremes."""
-    peak_dates = ["2013-12-04", "2017-12-16", "2021-11-08", "2025-10-06"]
-    trough_dates = ["2015-01-14", "2018-12-15", "2022-11-09"]
-    peaks = mvrv.reindex(pd.to_datetime(peak_dates)).dropna()
-    troughs = mvrv.reindex(pd.to_datetime(trough_dates)).dropna()
+def cycle_adjust(mvrv):
+    """Normalize MVRV to a contracting envelope of cycle peaks and troughs."""
+    # Major cycle peaks and troughs (local extremes with 1y window)
+    peaks = mvrv[(mvrv == mvrv.rolling(365, center=True).max()) & (mvrv > 2.5)]
+    troughs = mvrv[(mvrv == mvrv.rolling(365, center=True).min()) & (mvrv < 1.2)]
+    if len(peaks) < 3 or len(troughs) < 3:
+        return mvrv
+    # Fit declining line through peaks, rising through troughs (on days since start)
     start = mvrv.index[0]
     peak_days = (peaks.index - start).days.to_numpy()
     trough_days = (troughs.index - start).days.to_numpy()
@@ -44,7 +46,7 @@ def cycle_adjust(mvrv, price):
 
 def compute_bands(df):
     mvrv = df["MVRV"]
-    adj = cycle_adjust(mvrv, df["Price"])
+    adj = cycle_adjust(mvrv)
     n = len(df)
     pct = np.full(n, np.nan)
     bands = {q: np.full(n, np.nan) for q in QS}
@@ -94,7 +96,7 @@ def render(df, *, html_name, jpg_name):
         ), row=1, col=1)
     fig.add_trace(go.Scatter(
         x=d.index, y=d["Price"], mode="lines", name="BTC Price",
-        line=dict(color="#111", width=1.6),
+        line=dict(color="#f8fafc", width=1.6),
         hovertemplate="Price<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
     ), row=1, col=1)
     fig.add_trace(go.Scatter(
@@ -113,11 +115,11 @@ def render(df, *, html_name, jpg_name):
         ), row=2, col=1)
     fig.add_trace(go.Scatter(
         x=d.index, y=d["pct"], mode="lines", name="Cycle-adjusted percentile",
-        line=dict(color="#111", width=1.4),
+        line=dict(color="#f8fafc", width=1.4),
         hovertemplate="Percentile<br>%{x|%d %b %Y}<br>%{y:.0f}%<extra></extra>",
     ), row=2, col=1)
-    fig.update_yaxes(type="log", title_text="Price (USD)", row=1, col=1, gridcolor="#eee")
-    fig.update_yaxes(title_text="Percentile", row=2, col=1, gridcolor="#eee", range=[0, 100])
+    fig.update_yaxes(type="log", title_text="Price (USD)", row=1, col=1, gridcolor="#333")
+    fig.update_yaxes(title_text="Percentile", row=2, col=1, gridcolor="#333", range=[0, 100])
     fig.update_layout(
         title=dict(
             text=(
@@ -127,9 +129,14 @@ def render(df, *, html_name, jpg_name):
             ),
             x=0.5, xanchor="center",
         ),
-        template="plotly_white", hovermode="closest",
+        template="plotly_dark", hovermode="closest",
         legend=dict(orientation="h", y=-0.12, x=0),
         margin=dict(t=90, b=80, l=70, r=40),
+        annotations=[dict(
+            text="Chart by: @CarlesMassa", xref="paper", yref="paper",
+            x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"),
+            xanchor="right",
+        )],
     )
     html_path = Path("charts") / html_name
     jpg_path = Path("charts") / jpg_name
