@@ -1,0 +1,49 @@
+name: Update MVRV Data
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pandas requests
+      - name: Append latest MVRV
+        run: |
+          python3 - << 'PY'
+          import pandas as pd, requests
+          from pathlib import Path
+          url = "https://bitcoin-data.com/v1/mvrv"
+          r = requests.get(url, timeout=60)
+          r.raise_for_status()
+          rows = r.json()
+          latest = rows[-1]
+          date = pd.to_datetime(latest["d"])
+          path = Path("data/BTC_MVRV.csv")
+          df = pd.read_csv(path, parse_dates=["Date"])
+          if date in df["Date"].values:
+              print(f"{date:%Y-%m-%d} already present")
+          else:
+              new = pd.DataFrame({
+                  "Date": [date],
+                  "Price": [float(latest.get("price", 0))],
+                  "MVRV": [float(latest.get("mvrv", 0))],
+                  "Realized": [float(latest.get("realizedPrice", 0))]
+              })
+              df = pd.concat([df, new], ignore_index=True)
+              df = df.sort_values("Date").drop_duplicates("Date", keep="last")
+              df.to_csv(path, index=False)
+              print(f"Added {date:%Y-%m-%d}: MVRV {new['MVRV'].iloc[0]:.3f}")
+          PY
+      - name: Commit
+        run: |
+          git config user.name "Carlos Massa"
+          git config user.email "47972273+carlosmassa@users.noreply.github.com"
+          git add data/BTC_MVRV.csv
+          git diff --staged --quiet || git commit -m "Update MVRV data" && git push
