@@ -49,22 +49,18 @@ def compute_bands(df):
     n = len(df)
     pct = np.full(n, np.nan)
     bands = {q: np.full(n, np.nan) for q in QS}
-    adj_np = adj.to_numpy()
     mvrv_np = mvrv.to_numpy()
     realized = df["Realized"].to_numpy()
     for s in range(180, n):
-        sample = adj_np[: s + 1]
+        sample = mvrv_np[: s + 1]
         sample = sample[~np.isnan(sample)]
         if sample.size < 100:
             continue
         ordered = np.sort(sample)
-        pct[s] = np.searchsorted(ordered, adj_np[s], side="right") / ordered.size
+        pct[s] = np.searchsorted(ordered, mvrv_np[s], side="right") / ordered.size
         for q in QS:
-            q_val = np.quantile(ordered, q)
-            # Map back: price = realized * mvrv_at_that_quantile
-            # Approximate by scaling the current mvrv by the quantile ratio
-            ratio = q_val / max(adj_np[s], 0.01) if adj_np[s] > 0 else 1.0
-            bands[q][s] = realized[s] * mvrv_np[s] * ratio
+            q_mvrv = np.quantile(ordered, q)
+            bands[q][s] = realized[s] * q_mvrv
     out = df.copy()
     out["pct"] = pct * 100
     for q in QS:
