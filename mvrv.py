@@ -24,23 +24,24 @@ def load_mvrv(path="data/BTC_MVRV.csv"):
 
 
 def cycle_adjust(mvrv):
-    """Normalize MVRV by a contracting envelope of peaks and troughs."""
-    peaks = mvrv.rolling(365, min_periods=90).max()
-    troughs = mvrv.rolling(365, min_periods=90).min()
-    # Fit declining peak line and rising trough line on log-time
-    days = np.arange(len(mvrv))
-    valid = ~(peaks.isna() | troughs.isna())
-    if valid.sum() < 100:
+    """Normalize MVRV to a contracting envelope of cycle peaks and troughs."""
+    # Major cycle peaks and troughs (local extremes with 1y window)
+    peaks = mvrv[(mvrv == mvrv.rolling(365, center=True).max()) & (mvrv > 2.5)]
+    troughs = mvrv[(mvrv == mvrv.rolling(365, center=True).min()) & (mvrv < 1.2)]
+    if len(peaks) < 3 or len(troughs) < 3:
         return mvrv
-    log_t = np.log1p(days[valid])
-    peak_fit = np.polyfit(log_t, np.log(peaks[valid]), 1)
-    trough_fit = np.polyfit(log_t, np.log(troughs[valid]), 1)
-    peak_env = np.exp(np.polyval(peak_fit, np.log1p(days)))
-    trough_env = np.exp(np.polyval(trough_fit, np.log1p(days)))
-    # Ensure peak > trough
-    peak_env = np.maximum(peak_env, trough_env * 1.1)
+    # Fit declining line through peaks, rising through troughs (on days since start)
+    start = mvrv.index[0]
+    peak_days = (peaks.index - start).days.to_numpy()
+    trough_days = (troughs.index - start).days.to_numpy()
+    peak_fit = np.polyfit(peak_days, np.log(peaks.to_numpy()), 1)
+    trough_fit = np.polyfit(trough_days, np.log(troughs.to_numpy()), 1)
+    days = (mvrv.index - start).days.to_numpy()
+    peak_env = np.exp(np.polyval(peak_fit, days))
+    trough_env = np.exp(np.polyval(trough_fit, days))
+    peak_env = np.maximum(peak_env, trough_env * 1.05)
     norm = (mvrv.to_numpy() - trough_env) / (peak_env - trough_env)
-    return pd.Series(norm, index=mvrv.index)
+    return pd.Series(np.clip(norm, -0.5, 1.5), index=mvrv.index)
 
 
 def compute_bands(df):
