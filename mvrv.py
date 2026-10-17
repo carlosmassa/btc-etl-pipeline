@@ -73,7 +73,57 @@ def compute_bands(df):
     return out
 
 
-def render(df, *, html_name, jpg_name):
+def render_sma_charts(df):
+    """MVRV SMA, raw signals, and percentile signals. From 2012."""
+    d = df.loc["2012-01-01":].copy()
+    d["sma365"] = d["MVRV"].rolling(365).mean()
+    d["above"] = d["MVRV"] > d["sma365"]
+    d["cross_up"] = (d["above"] & ~d["above"].shift(1).fillna(False))
+    d["cross_down"] = (~d["above"] & d["above"].shift(1).fillna(False))
+    sells_raw = d[d["cross_down"] & (d["MVRV"] > 2.5)]
+    buys_raw = d[d["cross_up"] & (d["MVRV"] < 1.2)]
+    # SMA chart
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=d.index, y=d["MVRV"], mode="lines", name="MVRV", line=dict(color="#7dd3fc", width=1.4)))
+    fig.add_trace(go.Scatter(x=d.index, y=d["sma365"], mode="lines", name="365-day SMA", line=dict(color="#f5a24a", width=1.4)))
+    fig.add_hline(y=2.5, line_dash="dot", line_color="#ef4444", annotation_text="2.5")
+    fig.add_hline(y=1.2, line_dash="dot", line_color="#22c55e", annotation_text="1.2")
+    fig.update_layout(title=dict(text="MVRV and 365-day SMA<br><sup>From 2012</sup>", x=0.5, xanchor="center"),
+                      template="plotly_dark", hovermode="closest", legend=dict(orientation="h", y=-0.12, x=0),
+                      margin=dict(t=90, b=80, l=70, r=40), yaxis_title="MVRV")
+    fig.write_html("charts/btc_mvrv_sma.html")
+    fig.write_image("charts/btc_mvrv_sma.jpg", width=1600, height=700, scale=2)
+    # Raw signals
+    fig2 = go.Figure()
+    fig2.add_trace(go.Scatter(x=d.index, y=d["Price"], mode="lines", name="BTC Price", line=dict(color="#f8fafc", width=1.4)))
+    fig2.add_trace(go.Scatter(x=buys_raw.index, y=buys_raw["Price"], mode="markers", name="Buy", marker=dict(color="#22c55e", size=10, symbol="triangle-up")))
+    fig2.add_trace(go.Scatter(x=sells_raw.index, y=sells_raw["Price"], mode="markers", name="Sell", marker=dict(color="#ef4444", size=10, symbol="triangle-down")))
+    fig2.update_yaxes(type="log", title_text="Price (USD)")
+    fig2.update_layout(title=dict(text="BTC Price — raw MVRV SMA crosses<br><sup>Buy: cross up when MVRV < 1.2 · Sell: cross down when MVRV > 2.5</sup>", x=0.5, xanchor="center"),
+                       template="plotly_dark", hovermode="closest", legend=dict(orientation="h", y=-0.12, x=0),
+                       margin=dict(t=90, b=80, l=70, r=40))
+    fig2.write_html("charts/btc_mvrv_signals.html")
+    fig2.write_image("charts/btc_mvrv_signals.jpg", width=1600, height=700, scale=2)
+    # Percentile signals
+    adj = cycle_adjust(d["MVRV"])
+    d["pct"] = adj.expanding().rank(pct=True)
+    d["pct_sma"] = d["pct"].rolling(365).mean()
+    d["pct_above"] = d["pct"] > d["pct_sma"]
+    d["pct_cross_up"] = (d["pct_above"] & ~d["pct_above"].shift(1).fillna(False))
+    d["pct_cross_down"] = (~d["pct_above"] & d["pct_above"].shift(1).fillna(False))
+    sells_pct = d[d["pct_cross_down"] & (d["pct"] > 0.7)]
+    buys_pct = d[d["pct_cross_up"] & (d["pct"] < 0.3)]
+    fig3 = go.Figure()
+    fig3.add_trace(go.Scatter(x=d.index, y=d["Price"], mode="lines", name="BTC Price", line=dict(color="#f8fafc", width=1.4)))
+    fig3.add_trace(go.Scatter(x=buys_pct.index, y=buys_pct["Price"], mode="markers", name="Buy", marker=dict(color="#22c55e", size=10, symbol="triangle-up")))
+    fig3.add_trace(go.Scatter(x=sells_pct.index, y=sells_pct["Price"], mode="markers", name="Sell", marker=dict(color="#ef4444", size=10, symbol="triangle-down")))
+    fig3.update_yaxes(type="log", title_text="Price (USD)")
+    fig3.update_layout(title=dict(text="BTC Price — cycle-adjusted percentile crosses<br><sup>Buy: cross up when percentile < 30% · Sell: cross down when percentile > 70%</sup>", x=0.5, xanchor="center"),
+                       template="plotly_dark", hovermode="closest", legend=dict(orientation="h", y=-0.12, x=0),
+                       margin=dict(t=90, b=80, l=70, r=40))
+    fig3.write_html("charts/btc_mvrv_pct_signals.html")
+    fig3.write_image("charts/btc_mvrv_pct_signals.jpg", width=1600, height=700, scale=2)
+    logging.info("Wrote MVRV SMA charts")
     d = df.dropna(subset=["pct"])
     last = d.iloc[-1]
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.68, 0.32], vertical_spacing=0.04)
