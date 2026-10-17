@@ -76,15 +76,22 @@ def render(df, *, html_name, jpg_name):
     d = df.dropna(subset=["pct"])
     last = d.iloc[-1]
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.68, 0.32], vertical_spacing=0.04)
-    for q0, q1, color in BANDS:
+    # Top: tight bands around realized price
+    colors = {
+        (5, 25): "rgba(34,197,94,0.15)",
+        (25, 50): "rgba(250,204,21,0.10)",
+        (50, 75): "rgba(251,146,60,0.10)",
+        (75, 95): "rgba(239,68,68,0.15)",
+    }
+    for (q0, q1), color in colors.items():
         fig.add_trace(go.Scatter(
-            x=d.index, y=d[f"q{int(q1*100)}"], mode="lines", line=dict(width=0),
+            x=d.index, y=d[f"q{q1}"], mode="lines", line=dict(width=0),
             showlegend=False, hoverinfo="skip",
         ), row=1, col=1)
         fig.add_trace(go.Scatter(
-            x=d.index, y=d[f"q{int(q0*100)}"], mode="lines", line=dict(width=0),
-            fill="tonexty", fillcolor=color, name=f"{int(q0*100)}–{int(q1*100)}%",
-            hovertemplate=f"{int(q0*100)}%<br>%{{x|%d %b %Y}}<br>$%{{y:,.0f}}<extra></extra>",
+            x=d.index, y=d[f"q{q0}"], mode="lines", line=dict(width=0),
+            fill="tonexty", fillcolor=color, name=f"{q0}–{q1}%",
+            hovertemplate=f"{q0}%<br>%{{x|%d %b %Y}}<br>$%{{y:,.0f}}<extra></extra>",
         ), row=1, col=1)
     fig.add_trace(go.Scatter(
         x=d.index, y=d["Price"], mode="lines", name="BTC Price",
@@ -96,6 +103,11 @@ def render(df, *, html_name, jpg_name):
         line=dict(color="#f59e0b", width=1.4),
         hovertemplate="Realized<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>",
     ), row=1, col=1)
+    # Bottom: percentile with horizontal bands
+    fig.add_hrect(y0=0, y1=25, fillcolor="rgba(34,197,94,0.25)", line_width=0, row=2, col=1)
+    fig.add_hrect(y0=25, y1=50, fillcolor="rgba(250,204,21,0.18)", line_width=0, row=2, col=1)
+    fig.add_hrect(y0=50, y1=75, fillcolor="rgba(251,146,60,0.18)", line_width=0, row=2, col=1)
+    fig.add_hrect(y0=75, y1=100, fillcolor="rgba(239,68,68,0.25)", line_width=0, row=2, col=1)
     fig.add_trace(go.Scatter(
         x=d.index, y=d["pct"], mode="lines", name="Cycle-adjusted percentile",
         line=dict(color="#111", width=1.4),
