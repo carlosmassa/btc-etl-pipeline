@@ -22,19 +22,25 @@ jobs:
           url = "https://bitcoin-data.com/v1/mvrv"
           r = requests.get(url, timeout=60)
           r.raise_for_status()
-          rows = r.json()
-          latest = rows[-1]
-          date = pd.to_datetime(latest["d"])
+          mvrv_rows = r.json()
+          rp_url = "https://bitcoin-data.com/v1/realized-price"
+          rp = requests.get(rp_url, timeout=60).json()
+          latest_m = mvrv_rows[-1]
+          latest_r = rp[-1]
+          date = pd.to_datetime(latest_m["d"])
           path = Path("data/BTC_MVRV.csv")
           df = pd.read_csv(path, parse_dates=["Date"])
           if date in df["Date"].values:
               print(f"{date:%Y-%m-%d} already present")
           else:
+              # Get price from the prices CSV
+              prices = pd.read_csv("data/BTC_Prices.csv", parse_dates=["Date"]).set_index("Date")
+              price = prices.loc[date, "Value"] if date in prices.index else 0
               new = pd.DataFrame({
                   "Date": [date],
-                  "Price": [float(latest.get("price", 0))],
-                  "MVRV": [float(latest.get("mvrv", 0))],
-                  "Realized": [float(latest.get("realizedPrice", 0))]
+                  "Price": [price],
+                  "MVRV": [float(latest_m["mvrv"])],
+                  "Realized": [float(latest_r["realizedPrice"])]
               })
               df = pd.concat([df, new], ignore_index=True)
               df = df.sort_values("Date").drop_duplicates("Date", keep="last")
