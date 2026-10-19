@@ -234,6 +234,48 @@ def render_sth_chart():
     logging.info("Wrote STH support chart")
 
 
+
+def render_sth_inflections():
+    """STH major inflections: 30-day prior trend + 20-day confirmation."""
+    from scipy.signal import savgol_filter
+    sth = pd.read_csv("data/BTC_STH.csv", parse_dates=["Date"]).set_index("Date")
+    price = pd.read_csv("data/BTC_Prices.csv", parse_dates=["Date"]).set_index("Date")
+    df = price.join(sth, how="inner").dropna(subset=["Value", "STH"]).sort_index()
+    window = 121
+    slope = savgol_filter(df["STH"].values, window_length=window, polyorder=3, deriv=1, delta=1)
+    df["slope"] = slope
+    lookback, persist, min_slope = 30, 20, 0.001
+    ups, downs = [], []
+    for i in range(window + lookback, len(df) - persist):
+        if (df["slope"].iloc[i-lookback:i] < 0).all() and df["slope"].iloc[i] > min_slope:
+            if (df["slope"].iloc[i:i+persist] > 0).all():
+                ups.append(df.index[i])
+        if (df["slope"].iloc[i-lookback:i] > 0).all() and df["slope"].iloc[i] < -min_slope:
+            if (df["slope"].iloc[i:i+persist] < 0).all():
+                downs.append(df.index[i])
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df["Value"], mode="lines", name="BTC Price", line=dict(color="#f8fafc", width=1.2)))
+    fig.add_trace(go.Scatter(x=df.index, y=df["STH"], mode="lines", name="STH Realized Price", line=dict(color="#f5a24a", width=1.4)))
+    if ups:
+        fig.add_trace(go.Scatter(x=ups, y=df.loc[ups, "STH"], mode="markers", name="To uptrend",
+                                 marker=dict(color="#22c55e", size=12, symbol="triangle-up"),
+                                 hovertemplate="To uptrend<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>"))
+    if downs:
+        fig.add_trace(go.Scatter(x=downs, y=df.loc[downs, "STH"], mode="markers", name="To downtrend",
+                                 marker=dict(color="#ef4444", size=12, symbol="triangle-down"),
+                                 hovertemplate="To downtrend<br>%{x|%d %b %Y}<br>$%{y:,.0f}<extra></extra>"))
+    fig.update_yaxes(type="log", title_text="Price (USD)")
+    fig.update_layout(
+        title=dict(text="STH Realized Price — major inflections<br><sup>Large turns only: 30-day prior trend + 20-day confirmation</sup>", x=0.5, xanchor="center"),
+        template="plotly_dark", hovermode="closest",
+        legend=dict(orientation="h", y=-0.12, x=0),
+        margin=dict(t=90, b=80, l=70, r=40),
+        annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
+    )
+    fig.write_html("charts/btc_sth_inflections.html")
+    fig.write_image("charts/btc_sth_inflections.jpg", width=1600, height=700, scale=2)
+    logging.info("Wrote STH inflections chart")
+
 def render_momentum_chart(df):
     """MVRV momentum oscillator."""
     d = df.loc["2010-01-01":].copy()
