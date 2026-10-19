@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BTC Charts</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #14181e;
+      --panel-2: #1b2129;
+      --line: #2a323c;
+      --text: #e8edf2;
+      --muted: #9aa6b2;
+      --orange: #f5a24a;
+      --gold: #e0c36a;
+      --cyan: #7dd3fc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, rgba(245,162,74,0.12), transparent 50%),
+        radial-gradient(900px 400px at 100% 0%, rgba(224,195,106,0.10), transparent 45%),
+        var(--bg);
+      color: var(--text);
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 3.2rem 1.4rem 4rem; }
+    .hero { margin-bottom: 2.4rem; }
+    .kicker {
+      letter-spacing: 0.16em; text-transform: uppercase; font-size: 0.72rem;
+      color: var(--orange); margin: 0 0 0.6rem;
+    }
+    h1 { margin: 0 0 0.6rem; font-size: 2.1rem; font-weight: 700; }
+    .lede { margin: 0; max-width: 46rem; color: var(--muted); line-height: 1.55; }
+    h2 {
+      margin: 2.2rem 0 0.9rem; font-size: 0.82rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .card {
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1.15rem 1.2rem 1.2rem;
+      min-height: 168px;
+      display: flex; flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.btc { border-top: 3px solid var(--orange); }
+    .card.gold { border-top: 3px solid var(--gold); }
+    .card h3 { margin: 0 0 0.45rem; font-size: 1.12rem; }
+    .card p { margin: 0 0 1rem; color: var(--muted); font-size: 0.92rem; line-height: 1.45; flex: 1; }
+    .links { display: flex; gap: 0.55rem; }
+    .btn {
+      text-decoration: none; color: #0b0d10; background: var(--cyan);
+      padding: 0.45rem 0.75rem; border-radius: 999px; font-size: 0.85rem; font-weight: 700;
+    }
+    .btn.ghost {
+      background: transparent; color: var(--text); border: 1px solid var(--line);
+    }
+    .card.btc .btn { background: var(--orange); }
+    .card.gold .btn { background: var(--gold); }
+    .card .btn.ghost { background: transparent; color: var(--text); }
+    footer { margin-top: 2.4rem; color: var(--muted); font-size: 0.82rem; }
+    footer a { color: var(--text); }
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+      h1 { font-size: 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <p class="kicker">Daily research charts</p>
+      <h1>BTC Charts</h1>
+      <p class="lede">Daily power-law views of Bitcoin: quantile channels in dollars and in gold, the never-look-back floor, health checks that score the slope without using r², and the EQM ribbon and rainbow.</p>
+    </header>
+
+    <h2>Probability channels</h2>
+    <div class="grid">
+      <article class="card btc">
+        <h3>BTCUSD</h3>
+        <p>Log-log quantile power-law channel for Bitcoin in dollars, with the forward projection table.</p>
+        <div class="links">
+          <a class="btn" href="btc_usd_chart.html">Open HTML</a>
+          <a class="btn ghost" href="btc_usd_chart.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card gold">
+        <h3>BTC/GOLD</h3>
+        <p>Same channel for ounces of gold per bitcoin, with the ratio projection table.</p>
+        <div class="links">
+          <a class="btn" href="btc_gold_ratio_chart.html">Open HTML</a>
+          <a class="btn ghost" href="btc_gold_ratio_chart.jpg">JPG</a>
+        </div>
+      </article>
+    </div>
+
+
+    <h2>Model health — robust slope and walk-forward score</h2>
+    <div class="grid">
+      <article class="card btc">
+        <h3>BTCUSD health</h3>
+        <p>Expanding and 4-year exponents with Newey–West bands, the residual process after AR(1), and 30-day pinball loss against a persisted-deviation benchmark. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_usd_health.html">Open HTML</a>
+          <a class="btn ghost" href="btc_usd_health.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card gold">
+        <h3>BTC/GOLD health</h3>
+        <p>The same check for ounces of gold per bitcoin: HAC exponent, 1% floor slope, and whether the floor still beats a naïve forecast.</p>
+        <div class="links">
+          <a class="btn" href="btc_gold_ratio_health.html">Open HTML</a>
+          <a class="btn ghost" href="btc_gold_ratio_health.jpg">JPG</a>
+        </div>
+      </article>
+    </div>
+
+
+    <div class="grid">
+      <article class="card btc">
+        <h3>BTCUSD 0.1% floor</h3>
+        <p>The same health check scored on the 0.1% quantile floor instead of the 1% floor. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_usd_health_q001.html">Open HTML</a>
+          <a class="btn ghost" href="btc_usd_health_q001.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card gold">
+        <h3>BTC/GOLD 0.1% floor</h3>
+        <p>The gold-ratio health check scored on the 0.1% floor: slope, pinball ratio, and breach rate.</p>
+        <div class="links">
+          <a class="btn" href="btc_gold_ratio_health_q001.html">Open HTML</a>
+          <a class="btn ghost" href="btc_gold_ratio_health_q001.jpg">JPG</a>
+        </div>
+      </article>
+    </div>
+
+
+    <h2>EQM ribbon and rainbow</h2>
+    <div class="grid">
+      <article class="card btc">
+        <h3>EQM ribbon</h3>
+        <p>Mayer-multiple risk with the EMA40/80 regime and the 150-day price filter on, full history. Orange wash is long. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_eqm_ribbon.html">Open HTML</a>
+          <a class="btn ghost" href="btc_eqm_ribbon.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card btc">
+        <h3>EQM trades</h3>
+        <p>Every long since 2015. Bubble size is the return. The star is the open trade.</p>
+        <div class="links">
+          <a class="btn" href="btc_eqm_trades.html">Open HTML</a>
+          <a class="btn ghost" href="btc_eqm_trades.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card btc">
+        <h3>EQM backtest</h3>
+        <p>Long/cash with a one-day lag and 10 bps per switch, against buy and hold. Filter on.</p>
+        <div class="links">
+          <a class="btn" href="btc_eqm_backtest.html">Open HTML</a>
+          <a class="btn ghost" href="btc_eqm_backtest.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card btc">
+        <h3>EQM rainbow</h3>
+        <p>Walk-forward power law with a 4-year empirical residual window. Log scale, full history.</p>
+        <div class="links">
+          <a class="btn" href="btc_eqm_rainbow.html">Open HTML</a>
+          <a class="btn ghost" href="btc_eqm_rainbow.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card btc">
+        <h3>EQM rainbow, 12 months</h3>
+        <p>The same rainbow zoomed to the last year, with the risk panel underneath.</p>
+        <div class="links">
+          <a class="btn" href="btc_eqm_rainbow_zoom.html">Open HTML</a>
+          <a class="btn ghost" href="btc_eqm_rainbow_zoom.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card btc">
+        <h3>Valuation envelope</h3>
+        <p>Power-law 0.1% and 99% quantile lines against the walk-forward EQM 1% and 99% bands. Log scale, full history.</p>
+        <div class="links">
+          <a class="btn" href="btc_eqm_envelope.html">Open HTML</a>
+          <a class="btn ghost" href="btc_eqm_envelope.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card btc">
+        <h3>EQM log-log fits</h3>
+        <p>Raw EQM 1%, 50% and 99% bands solid, with their log-log fits dashed. Full history, one-year projection. No Monte Carlo.</p>
+        <div class="links">
+          <a class="btn" href="btc_eqm_fits.html">Open HTML</a>
+          <a class="btn ghost" href="btc_eqm_fits.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card btc">
+        <h3>EQM risk</h3>
+        <p>Full history of the rainbow risk. Hover shows the risk, the date, and the BTC price that day.</p>
+        <div class="links">
+          <a class="btn" href="btc_eqm_risk.html">Open HTML</a>
+          <a class="btn ghost" href="btc_eqm_risk.jpg">JPG</a>
+        </div>
+      </article>
+
+
+
+      <article class="card btc">
+        <h3>EQM ribbon price</h3>
+        <p>The price panel only, with the ribbon and the cash and long switches. Hover shows the risk as well. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_eqm_ribbon_price.html">Open HTML</a>
+          <a class="btn ghost" href="btc_eqm_ribbon_price.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card btc">
+        <h3>EQM trades and KPIs</h3>
+        <p>Every ribbon trade with days and gain or loss, plus Sharpe, Sortino, Calmar, CAGR and win rate for the full history, each bottom-to-bottom cycle, and since the ETF.</p>
+        <div class="links">
+          <a class="btn" href="btc_eqm_report.html">Open HTML</a>
+          <a class="btn ghost" href="btc_eqm_report.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card btc">
+        <h3>EQM asymmetric risk</h3>
+        <p>Hybrid high/low EQM risk against the close distribution. Asym is the close rank. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_eqm_asymmetric.html">Open HTML</a>
+          <a class="btn ghost" href="btc_eqm_asymmetric.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card">
+        <h3>MVRV Quantile Bands</h3>
+        <p>Cycle-adjusted MVRV ranked against its own history. Bands at the 5th, 25th, 50th, 75th, and 95th percentiles. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_mvrv_bands.html">Open HTML</a>
+          <a class="btn ghost" href="btc_mvrv_bands.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card">
+        <h3>MVRV and 365-day SMA</h3>
+        <p>Raw MVRV against its 365-day average. From 2012. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_mvrv_sma.html">Open HTML</a>
+          <a class="btn ghost" href="btc_mvrv_sma.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card">
+        <h3>MVRV SMA signals (raw)</h3>
+        <p>Buy on cross up below 1.2, sell on cross down above 2.5. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_mvrv_signals.html">Open HTML</a>
+          <a class="btn ghost" href="btc_mvrv_signals.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card">
+        <h3>MVRV SMA signals (percentile)</h3>
+        <p>Cycle-adjusted percentile crosses. Buy below 30%, sell above 70%. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_mvrv_pct_signals.html">Open HTML</a>
+          <a class="btn ghost" href="btc_mvrv_pct_signals.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card">
+        <h3>STH Realized Price</h3>
+        <p>Short-term holder cost basis as support and resistance. Coins moved in the last 155 days. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_sth_support.html">Open HTML</a>
+          <a class="btn ghost" href="btc_sth_support.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card">
+        <h3>MVRV Momentum Oscillator</h3>
+        <p>MVRV minus its 365-day average. Green above, red below. Not posted to X.</p>
+        <div class="links">
+          <a class="btn" href="btc_mvrv_momentum.html">Open HTML</a>
+          <a class="btn ghost" href="btc_mvrv_momentum.jpg">JPG</a>
+        </div>
+      </article>
+    </div>
+    <div class="grid">
+      <article class="card btc">
+        <h3>BTCUSD NLB</h3>
+        <p>Price versus the never-look-back floor — the lowest close from each date forward. Log scale.</p>
+        <div class="links">
+          <a class="btn" href="btc_usd_nlb.html">Open HTML</a>
+          <a class="btn ghost" href="btc_usd_nlb.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card btc">
+        <h3>BTCUSD NLB regression</h3>
+        <p>The NLB floor on log price versus square-root time, with the fitted corridor.</p>
+        <div class="links">
+          <a class="btn" href="btc_usd_nlb_regression.html">Open HTML</a>
+          <a class="btn ghost" href="btc_usd_nlb_regression.jpg">JPG</a>
+        </div>
+      </article>
+    </div>
+
+    <h2>Stabilization — b and r²</h2>
+    <div class="grid">
+      <article class="card btc">
+        <h3>BTCUSD stability</h3>
+        <p>Expanding-window slope and fit quality. Practical health check for the BTCUSD power law.</p>
+        <div class="links">
+          <a class="btn" href="btc_usd_stability.html">Open HTML</a>
+          <a class="btn ghost" href="btc_usd_stability.jpg">JPG</a>
+        </div>
+      </article>
+      <article class="card gold">
+        <h3>BTC/GOLD stability</h3>
+        <p>The same health check for the gold ratio, including max/min b and r².</p>
+        <div class="links">
+          <a class="btn" href="btc_gold_ratio_stability.html">Open HTML</a>
+          <a class="btn ghost" href="btc_gold_ratio_stability.jpg">JPG</a>
+        </div>
+      </article>
+    </div>
+
+    <footer>Chart by <a href="https://x.com/CarlesMassa">@CarlesMassa</a></footer>
+  </div>
+</body>
+</html>
