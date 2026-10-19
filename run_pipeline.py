@@ -10,6 +10,7 @@ from eqm import (
     render_trades, render_backtest, render_rainbow, render_rainbow_zoom,
     render_rainbow_risk, render_envelope, render_eqm_fits, render_asymmetric,
 )
+from mvrv import compute_bands, render as render_mvrv, render_sma_charts, render_sth_chart, render_momentum_chart
 from model_health import compute_model_health, render_health_chart
 from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from stability import compute_power_law_stability, render_stability_chart
