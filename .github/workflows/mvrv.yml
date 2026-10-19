@@ -9,8 +9,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - run: pip install pandas requests
@@ -19,7 +19,7 @@ jobs:
           python3 - << 'PY'
           import pandas as pd, requests
           from pathlib import Path
-          url = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=CapMVRVCur,PriceUSD,CapRealUSD&frequency=1d&page_size=5"
+          url = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=CapMVRVCur&frequency=1d&page_size=5"
           r = requests.get(url, timeout=60)
           r.raise_for_status()
           rows = r.json().get("data", [])
@@ -30,9 +30,10 @@ jobs:
           if date in df["Date"].values:
               print(f"{date:%Y-%m-%d} already present")
           else:
-              price = float(latest.get("PriceUSD", 0))
+              prices = pd.read_csv("data/BTC_Prices.csv", parse_dates=["Date"]).set_index("Date")
+              price = float(prices.loc[date, "Value"]) if date in prices.index else 0
               mvrv = float(latest.get("CapMVRVCur", 0))
-              realized = float(latest.get("CapRealUSD", 0)) / 21e6 if latest.get("CapRealUSD") else price / mvrv
+              realized = price / mvrv if mvrv else 0
               new = pd.DataFrame({"Date": [date], "Price": [price], "MVRV": [mvrv], "Realized": [realized]})
               df = pd.concat([df, new], ignore_index=True)
               df = df.sort_values("Date").drop_duplicates("Date", keep="last")
