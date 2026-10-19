@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
