@@ -166,6 +166,7 @@ jobs:
           fi
           mkdir -p charts
           mv temp/* charts/
+          cp charts/index.html index.html
           git add charts/btc_usd_chart.html charts/btc_usd_chart.jpg \
                   charts/btc_gold_ratio_chart.html charts/btc_gold_ratio_chart.jpg \
                   charts/btc_usd_stability.html charts/btc_usd_stability.jpg \
@@ -193,6 +194,6 @@ jobs:
                   charts/btc_mvrv_momentum.html charts/btc_mvrv_momentum.jpg \
                   charts/btc_usd_nlb.html charts/btc_usd_nlb.jpg \
                   charts/btc_usd_nlb_regression.html charts/btc_usd_nlb_regression.jpg \
-                  charts/index.html
+                  charts/index.html index.html
           git commit -m "Update BTC charts for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
