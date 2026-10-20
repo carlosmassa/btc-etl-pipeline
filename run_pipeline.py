@@ -10,7 +10,7 @@ from eqm import (
     render_trades, render_backtest, render_rainbow, render_rainbow_zoom,
     render_rainbow_risk, render_envelope, render_eqm_fits, render_asymmetric,
 )
-from mvrv import compute_bands, render as render_mvrv, render_sma_charts, render_sth_chart, render_sth_inflections, render_momentum_chart
+from mvrv import compute_bands, render as render_mvrv, render_sma_charts, render_sth_chart, render_sth_inflections, render_momentum_chart, render_mvrv_envelope
 from model_health import compute_model_health, render_health_chart
 from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from stability import compute_power_law_stability, render_stability_chart
@@ -124,6 +124,7 @@ def main() -> None:
         render_asymmetric(asym, rainbow, html_name="btc_eqm_asymmetric.html", jpg_name="btc_eqm_asymmetric.jpg")
         mvrv = pd.read_csv("data/BTC_MVRV.csv", parse_dates=["Date"]).set_index("Date")
         render_mvrv(compute_bands(mvrv), html_name="btc_mvrv_bands.html", jpg_name="btc_mvrv_bands.jpg")
+        render_mvrv_envelope()
         render_sma_charts(mvrv)
         render_sth_chart()
         render_sth_inflections()

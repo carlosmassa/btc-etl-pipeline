@@ -103,6 +103,8 @@ jobs:
             charts/btc_eqm_asymmetric.html
             charts/btc_mvrv_bands.jpg
             charts/btc_mvrv_bands.html
+            charts/btc_mvrv_envelope.jpg
+            charts/btc_mvrv_envelope.html
             charts/btc_mvrv_sma.jpg
             charts/btc_mvrv_sma.html
             charts/btc_mvrv_signals.jpg
@@ -151,6 +153,7 @@ jobs:
           mv charts/btc_eqm_fits.html charts/btc_eqm_fits.jpg temp/
           mv charts/btc_eqm_asymmetric.html charts/btc_eqm_asymmetric.jpg temp/
           mv charts/btc_mvrv_bands.html charts/btc_mvrv_bands.jpg temp/
+          mv charts/btc_mvrv_envelope.html charts/btc_mvrv_envelope.jpg temp/
           mv charts/btc_mvrv_sma.html charts/btc_mvrv_sma.jpg temp/
           mv charts/btc_mvrv_signals.html charts/btc_mvrv_signals.jpg temp/
           mv charts/btc_mvrv_pct_signals.html charts/btc_mvrv_pct_signals.jpg temp/
@@ -190,6 +193,7 @@ jobs:
                   charts/btc_eqm_fits.html charts/btc_eqm_fits.jpg \
                   charts/btc_eqm_asymmetric.html charts/btc_eqm_asymmetric.jpg \
                   charts/btc_mvrv_bands.html charts/btc_mvrv_bands.jpg \
+                  charts/btc_mvrv_envelope.html charts/btc_mvrv_envelope.jpg \
                   charts/btc_mvrv_sma.html charts/btc_mvrv_sma.jpg \
                   charts/btc_mvrv_signals.html charts/btc_mvrv_signals.jpg \
                   charts/btc_mvrv_pct_signals.html charts/btc_mvrv_pct_signals.jpg \

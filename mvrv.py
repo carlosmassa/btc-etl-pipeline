@@ -235,6 +235,44 @@ def render_sth_chart():
 
 
 
+
+def render_mvrv_envelope():
+    """MVRV cycle envelope: declining log line through peaks, rising through troughs."""
+    mvrv = pd.read_csv("data/BTC_MVRV.csv", parse_dates=["Date"]).set_index("Date")
+    df = mvrv.copy()
+    peaks = [("2011-06-08", 5.8), ("2013-12-04", 5.9), ("2017-12-17", 4.1), ("2021-04-14", 3.9)]
+    troughs = [("2011-11-18", 0.6), ("2015-01-14", 0.7), ("2018-12-15", 0.7), ("2022-11-21", 0.8)]
+    peak_dates = pd.to_datetime([p[0] for p in peaks])
+    peak_vals = np.array([p[1] for p in peaks])
+    trough_dates = pd.to_datetime([t[0] for t in troughs])
+    trough_vals = np.array([t[1] for t in troughs])
+    peak_days = (peak_dates - df.index[0]).days
+    trough_days = (trough_dates - df.index[0]).days
+    peak_fit = np.polyfit(peak_days, np.log(peak_vals), 1)
+    trough_fit = np.polyfit(trough_days, np.log(trough_vals), 1)
+    all_days = (df.index - df.index[0]).days
+    peak_line = np.exp(np.polyval(peak_fit, all_days))
+    trough_line = np.exp(np.polyval(trough_fit, all_days))
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df["MVRV"], mode="lines", name="MVRV", line=dict(color="#7dd3fc", width=1.2)))
+    fig.add_trace(go.Scatter(x=df.index, y=peak_line, mode="lines", name="Peak line (declining)", line=dict(color="#ef4444", width=1.4, dash="dot")))
+    fig.add_trace(go.Scatter(x=df.index, y=trough_line, mode="lines", name="Trough line (rising)", line=dict(color="#22c55e", width=1.4, dash="dot")))
+    fig.add_trace(go.Scatter(x=peak_dates, y=peak_vals, mode="markers", name="Confirmed peaks",
+                             marker=dict(color="#ef4444", size=10, symbol="triangle-down")))
+    fig.add_trace(go.Scatter(x=trough_dates, y=trough_vals, mode="markers", name="Confirmed troughs",
+                             marker=dict(color="#22c55e", size=10, symbol="triangle-up")))
+    fig.update_layout(
+        title=dict(text="MVRV Cycle Envelope<br><sup>Declining log line through peaks, rising log line through troughs</sup>", x=0.5, xanchor="center"),
+        template="plotly_dark", hovermode="closest",
+        legend=dict(orientation="h", y=-0.12, x=0),
+        margin=dict(t=90, b=80, l=70, r=40),
+        yaxis_title="MVRV",
+        annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
+    )
+    fig.write_html("charts/btc_mvrv_envelope.html")
+    fig.write_image("charts/btc_mvrv_envelope.jpg", width=1600, height=700, scale=2)
+    logging.info("Wrote MVRV envelope chart")
+
 def render_sth_inflections():
     """STH major inflections: 30-day prior trend + 20-day confirmation."""
     from scipy.signal import savgol_filter
