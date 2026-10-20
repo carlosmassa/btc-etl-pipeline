@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from eqm import HTML_CONFIG
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -148,7 +149,7 @@ def render(df, *, html_name, jpg_name):
     html_path = Path("charts") / html_name
     jpg_path = Path("charts") / jpg_name
     html_path.parent.mkdir(exist_ok=True)
-    fig.write_html(str(html_path), auto_open=False)
+    fig.write_html(str(html_path), auto_open=False, config=HTML_CONFIG)
     fig.write_image(str(jpg_path), width=1600, height=900, scale=2)
     logging.info("Wrote %s and %s", html_path, jpg_path)
     return html_path, jpg_path
@@ -172,7 +173,7 @@ def render_sma_charts(df):
     fig.update_layout(title=dict(text="MVRV and 365-day SMA<br><sup>From 2012</sup>", x=0.5, xanchor="center"),
                       template="plotly_dark", hovermode="closest", legend=dict(orientation="h", y=-0.12, x=0),
                       margin=dict(t=90, b=80, l=70, r=40), yaxis_title="MVRV")
-    fig.write_html("charts/btc_mvrv_sma.html")
+    fig.write_html("charts/btc_mvrv_sma.html", config=HTML_CONFIG)
     fig.write_image("charts/btc_mvrv_sma.jpg", width=1600, height=700, scale=2)
     # Raw signals
     fig2 = go.Figure()
@@ -183,7 +184,7 @@ def render_sma_charts(df):
     fig2.update_layout(title=dict(text="BTC Price — raw MVRV SMA crosses<br><sup>Buy: cross up when MVRV < 1.2 · Sell: cross down when MVRV > 2.5</sup>", x=0.5, xanchor="center"),
                        template="plotly_dark", hovermode="closest", legend=dict(orientation="h", y=-0.12, x=0),
                        margin=dict(t=90, b=80, l=70, r=40))
-    fig2.write_html("charts/btc_mvrv_signals.html")
+    fig2.write_html("charts/btc_mvrv_signals.html", config=HTML_CONFIG)
     fig2.write_image("charts/btc_mvrv_signals.jpg", width=1600, height=700, scale=2)
     # Percentile signals
     adj = cycle_adjust(d["MVRV"])
@@ -202,7 +203,7 @@ def render_sma_charts(df):
     fig3.update_layout(title=dict(text="BTC Price — cycle-adjusted percentile crosses<br><sup>Buy: cross up when percentile < 30% · Sell: cross down when percentile > 70%</sup>", x=0.5, xanchor="center"),
                        template="plotly_dark", hovermode="closest", legend=dict(orientation="h", y=-0.12, x=0),
                        margin=dict(t=90, b=80, l=70, r=40))
-    fig3.write_html("charts/btc_mvrv_pct_signals.html")
+    fig3.write_html("charts/btc_mvrv_pct_signals.html", config=HTML_CONFIG)
     fig3.write_image("charts/btc_mvrv_pct_signals.jpg", width=1600, height=700, scale=2)
     logging.info("Wrote MVRV SMA charts")
 
@@ -229,7 +230,7 @@ def render_sth_chart():
         margin=dict(t=90, b=80, l=70, r=40),
         annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
     )
-    fig.write_html("charts/btc_sth_support.html")
+    fig.write_html("charts/btc_sth_support.html", config=HTML_CONFIG)
     fig.write_image("charts/btc_sth_support.jpg", width=1600, height=700, scale=2)
     logging.info("Wrote STH support chart")
 
@@ -269,7 +270,7 @@ def render_mvrv_envelope():
         yaxis_title="MVRV",
         annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
     )
-    fig.write_html("charts/btc_mvrv_envelope.html")
+    fig.write_html("charts/btc_mvrv_envelope.html", config=HTML_CONFIG)
     fig.write_image("charts/btc_mvrv_envelope.jpg", width=1600, height=700, scale=2)
     logging.info("Wrote MVRV envelope chart")
 
@@ -290,7 +291,7 @@ def render_lth_chart():
         margin=dict(t=90, b=80, l=70, r=40),
         annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
     )
-    fig.write_html("charts/btc_lth_realized.html")
+    fig.write_html("charts/btc_lth_realized.html", config=HTML_CONFIG)
     fig.write_image("charts/btc_lth_realized.jpg", width=1600, height=700, scale=2)
     logging.info("Wrote LTH realized price chart")
 
@@ -312,7 +313,7 @@ def render_sth_lth_chart():
         margin=dict(t=90, b=80, l=70, r=40),
         annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
     )
-    fig.write_html("charts/btc_sth_lth.html")
+    fig.write_html("charts/btc_sth_lth.html", config=HTML_CONFIG)
     fig.write_image("charts/btc_sth_lth.jpg", width=1600, height=700, scale=2)
     logging.info("Wrote STH and LTH chart")
 
@@ -353,7 +354,7 @@ def render_sth_inflections():
         margin=dict(t=90, b=80, l=70, r=40),
         annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
     )
-    fig.write_html("charts/btc_sth_inflections.html")
+    fig.write_html("charts/btc_sth_inflections.html", config=HTML_CONFIG)
     fig.write_image("charts/btc_sth_inflections.jpg", width=1600, height=700, scale=2)
     logging.info("Wrote STH inflections chart")
 
@@ -378,6 +379,6 @@ def render_momentum_chart(df):
         margin=dict(t=90, b=80, l=70, r=70),
         annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
     )
-    fig.write_html("charts/btc_mvrv_momentum.html")
+    fig.write_html("charts/btc_mvrv_momentum.html", config=HTML_CONFIG)
     fig.write_image("charts/btc_mvrv_momentum.jpg", width=1600, height=700, scale=2)
     logging.info("Wrote MVRV momentum chart")
