@@ -36,6 +36,30 @@ jobs:
               df.to_csv(path, index=False)
               print(f"Added {date:%Y-%m-%d}: ${value:,.0f}")
           PY
+
+      - name: Append latest LTH
+        run: |
+          python3 - << 'PY'
+          import pandas as pd, requests
+          from pathlib import Path
+          url = "https://bitcoin-data.com/api/v1/lth-realized-price"
+          r = requests.get(url, timeout=60)
+          r.raise_for_status()
+          rows = r.json()
+          latest = rows[-1]
+          date = pd.to_datetime(latest["d"])
+          value = float(latest["lthRealizedPrice"])
+          path = Path("data/BTC_LTH.csv")
+          df = pd.read_csv(path, parse_dates=["Date"])
+          if date in df["Date"].values:
+              print(f"{date:%Y-%m-%d} already present")
+          else:
+              new = pd.DataFrame({"Date": [date], "LTH": [value]})
+              df = pd.concat([df, new], ignore_index=True)
+              df = df.sort_values("Date").drop_duplicates("Date", keep="last")
+              df.to_csv(path, index=False)
+              print(f"Added {date:%Y-%m-%d}: LTH {value:.2f}")
+          PY
       - name: Commit
         run: |
           git config user.name "Carlos Massa"
