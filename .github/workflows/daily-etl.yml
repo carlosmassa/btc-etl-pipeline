@@ -115,6 +115,10 @@ jobs:
             charts/btc_sth_support.html
             charts/btc_sth_inflections.jpg
             charts/btc_sth_inflections.html
+            charts/btc_lth_realized.jpg
+            charts/btc_lth_realized.html
+            charts/btc_sth_lth.jpg
+            charts/btc_sth_lth.html
             charts/btc_mvrv_momentum.jpg
             charts/btc_mvrv_momentum.html
             charts/btc_usd_nlb.jpg
@@ -159,6 +163,8 @@ jobs:
           mv charts/btc_mvrv_pct_signals.html charts/btc_mvrv_pct_signals.jpg temp/
           mv charts/btc_sth_support.html charts/btc_sth_support.jpg temp/
           mv charts/btc_sth_inflections.html charts/btc_sth_inflections.jpg temp/
+          mv charts/btc_lth_realized.html charts/btc_lth_realized.jpg temp/
+          mv charts/btc_sth_lth.html charts/btc_sth_lth.jpg temp/
           mv charts/btc_mvrv_momentum.html charts/btc_mvrv_momentum.jpg temp/
           mv charts/btc_usd_nlb.html charts/btc_usd_nlb.jpg temp/
           mv charts/btc_usd_nlb_regression.html charts/btc_usd_nlb_regression.jpg temp/
@@ -199,6 +205,8 @@ jobs:
                   charts/btc_mvrv_pct_signals.html charts/btc_mvrv_pct_signals.jpg \
                   charts/btc_sth_support.html charts/btc_sth_support.jpg \
                   charts/btc_sth_inflections.html charts/btc_sth_inflections.jpg \
+                  charts/btc_lth_realized.html charts/btc_lth_realized.jpg \
+                  charts/btc_sth_lth.html charts/btc_sth_lth.jpg \
                   charts/btc_mvrv_momentum.html charts/btc_mvrv_momentum.jpg \
                   charts/btc_usd_nlb.html charts/btc_usd_nlb.jpg \
                   charts/btc_usd_nlb_regression.html charts/btc_usd_nlb_regression.jpg \
