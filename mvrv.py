@@ -273,6 +273,49 @@ def render_mvrv_envelope():
     fig.write_image("charts/btc_mvrv_envelope.jpg", width=1600, height=700, scale=2)
     logging.info("Wrote MVRV envelope chart")
 
+
+def render_lth_chart():
+    """LTH realized price chart."""
+    lth = pd.read_csv("data/BTC_LTH.csv", parse_dates=["Date"]).set_index("Date")
+    price = pd.read_csv("data/BTC_Prices.csv", parse_dates=["Date"]).set_index("Date")
+    df = price.join(lth, how="inner").dropna()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df["Value"], mode="lines", name="BTC Price", line=dict(color="#f8fafc", width=1.4)))
+    fig.add_trace(go.Scatter(x=df.index, y=df["LTH"], mode="lines", name="LTH Realized Price", line=dict(color="#7dd3fc", width=1.6)))
+    fig.update_yaxes(type="log", title_text="Price (USD)")
+    fig.update_layout(
+        title=dict(text="Bitcoin Long-Term Holder Realized Price<br><sup>Coins unmoved for 155+ days</sup>", x=0.5, xanchor="center"),
+        template="plotly_dark", hovermode="closest",
+        legend=dict(orientation="h", y=-0.12, x=0),
+        margin=dict(t=90, b=80, l=70, r=40),
+        annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
+    )
+    fig.write_html("charts/btc_lth_realized.html")
+    fig.write_image("charts/btc_lth_realized.jpg", width=1600, height=700, scale=2)
+    logging.info("Wrote LTH realized price chart")
+
+def render_sth_lth_chart():
+    """Combined STH and LTH realized prices."""
+    sth = pd.read_csv("data/BTC_STH.csv", parse_dates=["Date"]).set_index("Date")
+    lth = pd.read_csv("data/BTC_LTH.csv", parse_dates=["Date"]).set_index("Date")
+    price = pd.read_csv("data/BTC_Prices.csv", parse_dates=["Date"]).set_index("Date")
+    df = price.join(sth, how="inner").join(lth, how="inner").dropna()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df["Value"], mode="lines", name="BTC Price", line=dict(color="#f8fafc", width=1.4)))
+    fig.add_trace(go.Scatter(x=df.index, y=df["STH"], mode="lines", name="STH Realized Price", line=dict(color="#f5a24a", width=1.4)))
+    fig.add_trace(go.Scatter(x=df.index, y=df["LTH"], mode="lines", name="LTH Realized Price", line=dict(color="#7dd3fc", width=1.4)))
+    fig.update_yaxes(type="log", title_text="Price (USD)")
+    fig.update_layout(
+        title=dict(text="Bitcoin STH and LTH Realized Prices<br><sup>STH: coins moved in last 155 days · LTH: coins unmoved for 155+ days</sup>", x=0.5, xanchor="center"),
+        template="plotly_dark", hovermode="closest",
+        legend=dict(orientation="h", y=-0.12, x=0),
+        margin=dict(t=90, b=80, l=70, r=40),
+        annotations=[dict(text="Chart by: @CarlesMassa", xref="paper", yref="paper", x=1, y=-0.08, showarrow=False, font=dict(size=11, color="#9aa6b2"), xanchor="right")],
+    )
+    fig.write_html("charts/btc_sth_lth.html")
+    fig.write_image("charts/btc_sth_lth.jpg", width=1600, height=700, scale=2)
+    logging.info("Wrote STH and LTH chart")
+
 def render_sth_inflections():
     """STH major inflections: 30-day prior trend + 20-day confirmation."""
     from scipy.signal import savgol_filter
