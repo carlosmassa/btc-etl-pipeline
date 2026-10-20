@@ -239,7 +239,7 @@ def render_sth_chart():
 def render_mvrv_envelope():
     """MVRV cycle envelope: declining log line through peaks, rising through troughs."""
     mvrv = pd.read_csv("data/BTC_MVRV.csv", parse_dates=["Date"]).set_index("Date")
-    df = mvrv.copy()
+    df = mvrv.loc["2010-08-01":].copy()
     peaks = [("2011-06-08", 5.8), ("2013-12-04", 5.9), ("2017-12-17", 4.1), ("2021-04-14", 3.9)]
     troughs = [("2011-11-18", 0.6), ("2015-01-14", 0.7), ("2018-12-15", 0.7), ("2022-11-21", 0.8)]
     peak_dates = pd.to_datetime([p[0] for p in peaks])
