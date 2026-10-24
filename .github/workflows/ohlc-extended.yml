@@ -1,0 +1,60 @@
+name: Update BTC OHLC Daily and 4H
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - run: pip install pandas requests
+      - name: Append latest daily and 4H
+        run: |
+          python3 - << 'PY'
+          import pandas as pd
+          import requests
+          from datetime import datetime
+          from pathlib import Path
+
+          def fetch_kraken(interval):
+              r = requests.get(f"https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval={interval}", timeout=30)
+              r.raise_for_status()
+              candles = r.json()["result"]["XXBTZUSD"]
+              rows = []
+              for c in candles:
+                  rows.append({
+                      "Date": datetime.utcfromtimestamp(c[0]),
+                      "Open": float(c[1]),
+                      "High": float(c[2]),
+                      "Low": float(c[3]),
+                      "Close": float(c[4]),
+                      "Volume": float(c[6]),
+                  })
+              return pd.DataFrame(rows)
+
+          def append(path, new_df):
+              p = Path(path)
+              df = pd.read_csv(p, parse_dates=["Date"])
+              combined = pd.concat([df, new_df]).drop_duplicates("Date", keep="last").sort_values("Date")
+              if len(combined) > len(df):
+                  combined.to_csv(p, index=False)
+                  print(f"{path}: added {len(combined) - len(df)} rows, now {len(combined)} total")
+              else:
+                  print(f"{path}: no new rows")
+
+          append("data/BTC_OHLC_Daily.csv", fetch_kraken(1440))
+          append("data/BTC_OHLC_4H.csv", fetch_kraken(240))
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/BTC_OHLC_Daily.csv data/BTC_OHLC_4H.csv
+          git diff --staged --quiet || git commit -m "Update BTC OHLC Daily and 4H for $(date +%Y-%m-%d)"
+          git push
