@@ -13,6 +13,7 @@ from eqm import (
 from mvrv import compute_bands, render as render_mvrv, render_sma_charts, render_sth_chart, render_sth_inflections, render_momentum_chart, render_mvrv_envelope, render_lth_chart, render_sth_lth_chart
 from model_health import compute_model_health, render_health_chart
 from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
+from neutral import compute_neutral, render_neutral
 from stability import compute_power_law_stability, render_stability_chart
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -134,6 +135,8 @@ def main() -> None:
     nlb = compute_nlb(btc)
     render_nlb_basic(nlb)
     render_nlb_regression(nlb)
+    neutral = compute_neutral(btc)
+    render_neutral(neutral)
     write_full_index()
 
 

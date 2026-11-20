@@ -41,6 +41,8 @@ REQUIRED = [
     "btc_usd_nlb.jpg",
     "btc_usd_nlb_regression.html",
     "btc_usd_nlb_regression.jpg",
+    "btc_neutral_price.html",
+    "btc_neutral_price.jpg",
     "index.html",
 ]
 
