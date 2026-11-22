@@ -33,12 +33,15 @@ jobs:
               prices = pd.read_csv("data/BTC_Prices.csv", parse_dates=["Date"]).set_index("Date")
               price = float(prices.loc[date, "Value"]) if date in prices.index else 0
               mvrv = float(latest.get("CapMVRVCur", 0))
-              realized = price / mvrv if mvrv else 0
-              new = pd.DataFrame({"Date": [date], "Price": [price], "MVRV": [mvrv], "Realized": [realized]})
-              df = pd.concat([df, new], ignore_index=True)
-              df = df.sort_values("Date").drop_duplicates("Date", keep="last")
-              df.to_csv(path, index=False)
-              print(f"Added {date:%Y-%m-%d}: MVRV {mvrv:.3f}")
+              if price <= 0 or mvrv <= 0:
+                  print(f"Skipping {date:%Y-%m-%d}: invalid price={price} or mvrv={mvrv}")
+              else:
+                  realized = price / mvrv
+                  new = pd.DataFrame({"Date": [date], "Price": [price], "MVRV": [mvrv], "Realized": [realized]})
+                  df = pd.concat([df, new], ignore_index=True)
+                  df = df.sort_values("Date").drop_duplicates("Date", keep="last")
+                  df.to_csv(path, index=False)
+                  print(f"Added {date:%Y-%m-%d}: MVRV {mvrv:.3f}")
           PY
       - name: Commit
         run: |
