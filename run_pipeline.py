@@ -14,6 +14,7 @@ from mvrv import compute_bands, render as render_mvrv, render_sma_charts, render
 from model_health import compute_model_health, render_health_chart
 from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from neutral import compute_neutral, render_neutral
+from etf_flows import render_etf_flows
 from stability import compute_power_law_stability, render_stability_chart
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
