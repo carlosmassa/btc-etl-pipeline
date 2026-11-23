@@ -138,6 +138,7 @@ def main() -> None:
     render_nlb_regression(nlb)
     neutral = compute_neutral(btc)
     render_neutral(neutral)
+    render_etf_flows()
     write_full_index()
 
 
