@@ -1,0 +1,43 @@
+name: Update Hashrate
+on:
+  schedule:
+    - cron: "45 6 * * *"
+  workflow_dispatch:
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - run: pip install pandas requests
+      - name: Refresh hashrate
+        run: |
+          python3 - << 'PY'
+          import pandas as pd, requests
+          from pathlib import Path
+          r = requests.get("https://bitcoin-data.com/v1/hashrate", timeout=60)
+          r.raise_for_status()
+          rows = r.json()
+          new = pd.DataFrame(rows)
+          new["Date"] = pd.to_datetime(new["d"])
+          new = new[["Date", "hashrate"]].sort_values("Date")
+          path = Path("data/BTC_Hashrate.csv")
+          if path.exists():
+              old = pd.read_csv(path, parse_dates=["Date"])
+              df = pd.concat([old, new], ignore_index=True)
+          else:
+              df = new
+          df = df.sort_values("Date").drop_duplicates("Date", keep="last")
+          df.to_csv(path, index=False)
+          print(f"Hashrate: {len(df)} rows through {df.Date.max():%Y-%m-%d}")
+          PY
+      - name: Commit
+        run: |
+          git config user.name "Carlos Massa"
+          git config user.email "47972273+carlosmassa@users.noreply.github.com"
+          git add data/BTC_Hashrate.csv
+          git diff --staged --quiet || git commit -m "Update hashrate data" && git push
