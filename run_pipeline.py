@@ -15,6 +15,7 @@ from model_health import compute_model_health, render_health_chart
 from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from neutral import compute_neutral, render_neutral
 from etf_flows import render_etf_flows
+from hash_ribbons import render_hash_ribbons
 from stability import compute_power_law_stability, render_stability_chart
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -139,6 +140,7 @@ def main() -> None:
     neutral = compute_neutral(btc)
     render_neutral(neutral)
     render_etf_flows()
+    render_hash_ribbons()
     write_full_index()
 
 
