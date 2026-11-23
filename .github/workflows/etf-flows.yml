@@ -1,0 +1,50 @@
+name: Update ETF Flows
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - run: pip install pandas requests
+      - name: Refresh ETF flows
+        run: |
+          python3 - << 'PY'
+          import pandas as pd, requests
+          from pathlib import Path
+          r = requests.get("https://www.tftc.io/bitcoin-etf-flows/data.json", timeout=60)
+          r.raise_for_status()
+          days = r.json().get("days", [])
+          rows = []
+          for x in days:
+              rows.append({
+                  "Date": x["date"],
+                  "NetFlowUSD": x["netFlowUsd"],
+                  "BTCClose": x.get("btcCloseUsd"),
+                  "AUM": x.get("totalNetAssetsUsd"),
+              })
+          new = pd.DataFrame(rows)
+          new["Date"] = pd.to_datetime(new["Date"])
+          path = Path("data/BTC_ETF_Flows.csv")
+          if path.exists():
+              old = pd.read_csv(path, parse_dates=["Date"])
+              df = pd.concat([old, new], ignore_index=True)
+          else:
+              df = new
+          df = df.sort_values("Date").drop_duplicates("Date", keep="last")
+          df.to_csv(path, index=False)
+          print(f"ETF flows: {len(df)} rows through {df.Date.max():%Y-%m-%d}")
+          PY
+      - name: Commit
+        run: |
+          git config user.name "Carlos Massa"
+          git config user.email "47972273+carlosmassa@users.noreply.github.com"
+          git add data/BTC_ETF_Flows.csv
+          git diff --staged --quiet || git commit -m "Update ETF flows data" && git push

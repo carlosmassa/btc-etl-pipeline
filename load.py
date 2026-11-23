@@ -43,6 +43,8 @@ REQUIRED = [
     "btc_usd_nlb_regression.jpg",
     "btc_neutral_price.html",
     "btc_neutral_price.jpg",
+    "btc_etf_flows.html",
+    "btc_etf_flows.jpg",
     "btc_trend_slopes.html",
     "btc_trend_slopes.jpg",
     "index.html",
