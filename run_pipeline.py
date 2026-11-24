@@ -16,6 +16,7 @@ from nlb import compute_nlb, render_nlb_basic, render_nlb_regression
 from neutral import compute_neutral, render_neutral
 from etf_flows import render_etf_flows
 from hash_ribbons import render_hash_ribbons
+from rsi import render_rsi
 from stability import compute_power_law_stability, render_stability_chart
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -141,6 +142,7 @@ def main() -> None:
     render_neutral(neutral)
     render_etf_flows()
     render_hash_ribbons()
+    render_rsi()
     write_full_index()
 
 

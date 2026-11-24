@@ -172,6 +172,7 @@ jobs:
           mv charts/btc_trend_slopes.html charts/btc_trend_slopes.jpg temp/
           mv charts/btc_etf_flows.html charts/btc_etf_flows.jpg temp/
           mv charts/btc_hash_ribbons.html charts/btc_hash_ribbons.jpg temp/
+          mv charts/btc_rsi.html charts/btc_rsi.jpg temp/
           mv charts/index.html temp/
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             git fetch origin gh-pages
@@ -218,6 +219,7 @@ jobs:
                   charts/btc_trend_slopes.html charts/btc_trend_slopes.jpg \
                   charts/btc_etf_flows.html charts/btc_etf_flows.jpg \
                   charts/btc_hash_ribbons.html charts/btc_hash_ribbons.jpg \
+                  charts/btc_rsi.html charts/btc_rsi.jpg \
                   charts/index.html index.html
           git commit -m "Update BTC charts for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/carlosmassa/btc-etl-pipeline.git gh-pages
