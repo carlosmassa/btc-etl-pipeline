@@ -47,6 +47,8 @@ REQUIRED = [
     "btc_etf_flows.jpg",
     "btc_hash_ribbons.html",
     "btc_hash_ribbons.jpg",
+    "btc_rsi.html",
+    "btc_rsi.jpg",
     "btc_trend_slopes.html",
     "btc_trend_slopes.jpg",
     "index.html",
