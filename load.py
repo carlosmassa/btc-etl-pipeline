@@ -49,6 +49,8 @@ REQUIRED = [
     "btc_hash_ribbons.jpg",
     "btc_rsi.html",
     "btc_rsi.jpg",
+    "btc_compass.html",
+    "btc_compass.jpg",
     "btc_trend_slopes.html",
     "btc_trend_slopes.jpg",
     "index.html",
